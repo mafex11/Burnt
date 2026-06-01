@@ -18,33 +18,11 @@ brew install --cask mafex11/tap/burnt
 
 ---
 
-## Screenshots
-
-<!-- Drop your images here. Suggested: a menu bar shot + the open popover.
-     Put files in docs/images/ and reference them like below. -->
-
 <div align="center">
 
-<!-- ![Burnt menu bar](docs/images/menubar.png) -->
-<!-- ![Burnt popover](docs/images/popover.png) -->
-
-*(Screenshots coming soon — `🔥 $4.21` in the menu bar, click for the full dashboard.)*
+![Burnt — menu bar and dashboard](docs/images/hero.png)
 
 </div>
-
-```
- 🔥 $4.21               ← always in your menu bar
- ┌──────────────────────────┐
- │ $4.21              ⚙ ↻   │  today  ▲ 12% vs last week
- │ ████████░░  42% of $10   │  daily budget
- │ Week    Month    All-time │
- │ $28.90  $112.40  $7,468  │
- │ ▁▃▅▇▅▃▂▁▃▅▇▅▃▂  (14-day) │  hover any bar for the day
- │ ● Claude  ▓▓▓▓▓▓░  $3.10  │
- │ ● Codex   ▓▓░░░░░  $1.11  │
- │ ≈ $12.40 saved via cache  │
- └──────────────────────────┘
-```
 
 ## Why Burnt
 
