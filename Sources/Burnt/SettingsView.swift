@@ -42,6 +42,11 @@ struct SettingsView: View {
 
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
 
+            Divider()
+
+            Button("Quit Burnt") { NSApplication.shared.terminate(nil) }
+                .buttonStyle(.borderless)
+
             Spacer(minLength: 0)
         }
         .padding()

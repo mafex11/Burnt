@@ -101,7 +101,7 @@ struct Sparkline: View {
         if let key = hovered, let p = points.first(where: { $0.date == key }) {
             return "\(prettyDate(p.date)) · \(Formatters.cost(p.cost))"
         }
-        return "last 7 days"
+        return "last 14 days"
     }
 
     var body: some View {
@@ -143,6 +143,41 @@ struct UnavailableView: View {
                 .font(.system(size: 12)).foregroundStyle(.secondary)
             Button("Recheck", action: onRecheck)
         }.padding()
+    }
+}
+
+/// Refresh button that brightens on hover and spins continuously while refreshing.
+/// (The menu bar popover gives no default hover affordance, so we drive both from state.)
+struct RefreshButton: View {
+    let isLoading: Bool
+    let action: () -> Void
+    @State private var hovering = false
+    @State private var spin = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: isLoading ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+                .foregroundStyle(hovering ? Color.primary : Color.secondary)
+                .rotationEffect(.degrees(spin ? 360 : 0))
+                .animation(isLoading
+                           ? .linear(duration: 0.8).repeatForever(autoreverses: false)
+                           : .default,
+                           value: spin)
+                .padding(4)
+                .background(
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(Color.primary.opacity(hovering ? 0.12 : 0))
+                )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .onChange(of: isLoading) { _, loading in
+            if loading {
+                spin = true               // start the repeating rotation
+            } else {
+                spin = false              // stop and reset to 0
+            }
+        }
     }
 }
 

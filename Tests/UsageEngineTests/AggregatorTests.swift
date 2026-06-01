@@ -54,12 +54,12 @@ final class AggregatorTests: XCTestCase {
         XCTAssertEqual(codex.cost, 2, accuracy: 0.001)
     }
 
-    func testWeekByDayIsZeroFilledSevenPoints() {
+    func testWeekByDayIsZeroFilledFourteenPoints() {
         let r = report([day("2026-06-08", cost: 1, models: [mb("claude-opus-4-8", cost: 1, total: 10)])])
         let s = Aggregator.summary(from: r, referenceDate: ref)
-        XCTAssertEqual(s.weekByDay.count, 7)
-        XCTAssertEqual(s.weekByDay.last?.date, "2026-06-08")
-        XCTAssertEqual(s.weekByDay.first?.date, "2026-06-02")
+        XCTAssertEqual(s.weekByDay.count, 14)                 // 14-day sparkline series
+        XCTAssertEqual(s.weekByDay.last?.date, "2026-06-08")  // newest = today
+        XCTAssertEqual(s.weekByDay.first?.date, "2026-05-26") // oldest = 13 days prior
         XCTAssertEqual(s.weekByDay.first?.cost, 0)            // zero-filled gap day
     }
 

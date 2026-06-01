@@ -29,8 +29,11 @@ struct SummaryView: View {
                     }
                 }
                 Spacer()
-                Button(action: onGear) { Image(systemName: "gearshape") }
-                    .buttonStyle(.borderless)
+                VStack(spacing: 6) {
+                    Button(action: onGear) { Image(systemName: "gearshape") }
+                        .buttonStyle(.borderless)
+                    RefreshButton(isLoading: isLoading, action: onRefresh)
+                }
             }
 
             // Budget bar — always shown when a budget is set.
@@ -84,16 +87,10 @@ struct SummaryView: View {
                 }
             }
 
-            Divider()
-
-            // Footer — always shown.
-            HStack {
-                if let stale { StaleBadge(generatedAt: stale) }
-                Spacer()
-                Button(action: onRefresh) {
-                    Image(systemName: isLoading ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
-                }.buttonStyle(.borderless)
-                Button("Quit") { NSApplication.shared.terminate(nil) }.buttonStyle(.borderless)
+            // Stale indicator only appears when data is stale.
+            if let stale {
+                Divider()
+                StaleBadge(generatedAt: stale)
             }
         }
         .padding()

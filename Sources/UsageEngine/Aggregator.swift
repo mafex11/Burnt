@@ -36,10 +36,12 @@ public enum Aggregator {
         var weekTotals = Totals()
         for d in weekDays { weekTotals = add(weekTotals, totals(for: d)) }
 
-        let costByDay = Dictionary(grouping: weekDays, by: { $0.period })
+        // Sparkline series: last 14 days, oldest→newest, zero-filled. Sourced from
+        // ALL daily rows (not just the 7-day week window) so it spans two weeks.
+        let costByDay = Dictionary(grouping: report.daily, by: { $0.period })
             .mapValues { $0.reduce(0) { $0 + $1.totalCost } }
         var points: [DayPoint] = []
-        for offset in stride(from: 6, through: 0, by: -1) {
+        for offset in stride(from: 13, through: 0, by: -1) {
             let date = cal.date(byAdding: .day, value: -offset, to: today)!
             let k = key(date)
             points.append(DayPoint(date: k, cost: costByDay[k] ?? 0))

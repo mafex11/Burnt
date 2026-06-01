@@ -10,7 +10,7 @@ final class UsageEngineSmokeTests: XCTestCase {
         let engine = UsageEngine()
         switch engine.loadSummary() {
         case .success(let s), .stale(let s, _):
-            XCTAssertEqual(s.weekByDay.count, 7)
+            XCTAssertEqual(s.weekByDay.count, 14)
             XCTAssertGreaterThanOrEqual(s.thisWeek.cost, 0)
         case .noData:
             break // acceptable on a machine with no usage
