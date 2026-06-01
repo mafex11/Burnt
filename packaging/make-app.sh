@@ -14,6 +14,12 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp .build/release/Burnt "$APP/Contents/MacOS/Burnt"
 cp packaging/Info.plist "$APP/Contents/Info.plist"
 
+# App icon (generate it if missing).
+if [ ! -f packaging/AppIcon.icns ]; then
+  ./packaging/make-icon.sh
+fi
+cp packaging/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
+
 # Bundle the self-contained Node runtime + ccusage package. CcusageLocator runs
 # Resources/node against Resources/node_modules/ccusage/dist/cli.js.
 cp packaging/vendor/node "$APP/Contents/Resources/node"
