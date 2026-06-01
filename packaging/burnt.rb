@@ -2,8 +2,8 @@
 # frozen_string_literal: true
 
 cask "burnt" do
-  version "1.0.0"
-  sha256 "d8f07c3962413e5476a4409b514858bcb3b7e0e4907f6bda53641165dc905793"
+  version "1.1.0"
+  sha256 "853e1ab29345042e6d703d7d2593be2dfff07e3b6b9f608c44882ddf0b9693d4"
 
   url "https://github.com/mafex11/Burnt/releases/download/v#{version}/Burnt.zip"
   name "Burnt"
