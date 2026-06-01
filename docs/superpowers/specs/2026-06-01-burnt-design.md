@@ -16,15 +16,20 @@ The user runs Claude Code and Codex daily from the terminal, billed **per token 
 
 Success = clicking the menu bar shows an accurate, current "today's burn" in dollars within ~1 second, plus a small dashboard for the week and breakdowns — with numbers that match `ccusage` to the cent.
 
+**Billing-model assumption (v1):** Burnt targets **API (pay-per-token)** billing, where the dollar figure is real money spent. The underlying token data (volume, by-tool, by-model, cache) is identical regardless of plan, so the app *runs* fine for Pro/Max/Team subscription accounts — but for a subscriber the `$` is the **API-equivalent value** of their usage (what it *would* cost on the API), not a bill. v1 labels the figure as spend and documents this caveat; a subscription "value" mode is a v2 path (see §11).
+
 ### In scope (v1)
 - macOS menu bar app, installed via Homebrew cask (`brew install --cask burnt`).
 - Cost (USD) + token volume for **today** and **this week**.
 - Breakdowns: **by tool** (Claude/Codex), **by model**, **cache efficiency** ("saved $Y via cache").
-- On-open refresh (re-query when the menu bar popover opens) + a manual refresh button.
+- **Two refresh modes (cost-vs-freshness split):**
+  - **Background poll every 60s** uses ccusage `--offline` (cached pricing) — keeps the menu bar number live without a network call every minute. Cheap, battery-friendly, works offline.
+  - **Human-triggered refresh** (popover open + manual refresh button) fetches **live** LiteLLM prices (online). The numbers you actually read are accurate to the minute.
 
 ### Out of scope (v1 — deferred)
 - **By project / directory breakdown.** ccusage's JSON keys sessions by UUID with no cwd/path, so project attribution would require a separate raw-log reader. Deferred to v2.
-- Real-time file watching / background daemon. v1 refreshes on open only.
+- File-system watching (FSEvents) for sub-second updates. The 60s poll is sufficient for v1; true live-watching is deferred.
+- Launch-at-login. Considered but deferred — user starts the app; revisit if desired.
 - Monthly/quarterly historical analytics beyond what a 100+ day daily array trivially supports.
 - Budgets, alerts, notifications.
 - Windows/Linux. macOS only.
@@ -42,7 +47,7 @@ Success = clicking the menu bar shows an accurate, current "today's burn" in dol
 
 **Differentiator vs ccusage:** ccusage is a CLI. Burnt is a glanceable macOS menu bar app (today's burn always one click away, brew-installable, native dashboard). Same data, different surface.
 
-**Accepted tradeoff:** Burnt depends on Node/npx being available at runtime. Mitigated by (a) a Homebrew `depends_on` declaration, and (b) an explicit in-app "Node/npx required" state rather than a silent failure. See §6.
+**Delivery of ccusage (UX decision):** Burnt **bundles a pinned, self-contained `ccusage` binary inside `Burnt.app`** rather than depending on Node/npx at runtime. This removes the ~150MB Node install, eliminates the multi-second `npx` cold-start, and works fully offline. Node/npx remains only a *graceful fallback* if the bundled binary is somehow unavailable. See §6.
 
 ---
 
@@ -54,7 +59,7 @@ Burnt.app  (SwiftUI menu bar app, distributed as a Homebrew cask)
 │   ├─ CcusageRunner       shells out: `ccusage daily --json`, decodes stdout
 │   ├─ Models              DailyUsage, ModelBreakdown, Summary (Codable, mirror ccusage JSON)
 │   ├─ Aggregator          rolls [DailyUsage] → today / this-week / by-tool / by-model / cache-savings
-│   └─ NodeProbe           detects node/npx/ccusage; produces an EngineState
+│   └─ CcusageLocator      bundled-binary-first discovery; produces an EngineState
 └─ BurntApp               (thin SwiftUI front-end)
     ├─ MenuBarView         "◔ Burnt  $X today" + refresh button
     └─ DashboardView       week sparkline, tool split, model table, "saved $Y via cache"
@@ -67,7 +72,7 @@ Burnt.app  (SwiftUI menu bar app, distributed as a Homebrew cask)
 ## 4. Data Flow
 
 1. User clicks the menu bar icon → popover opens → `onAppear` triggers `engine.loadSummary()`.
-2. `NodeProbe` resolves an executable for ccusage (see §6 discovery order). If none → return `.nodeMissing`.
+2. `CcusageLocator` resolves an executable for ccusage (see §6 discovery order — bundled binary first). If none → return `.unavailable`.
 3. `CcusageRunner` runs `ccusage daily --json`, captures stdout, decodes into `[DailyUsage]` + `totals`.
 4. `Aggregator` (pure functions) computes the `Summary`:
    - **Today:** the row whose `period` == today's local date (or zero if absent).
@@ -128,21 +133,27 @@ struct Summary {
 
 ---
 
-## 6. Node/ccusage Dependency Handling
+## 6. ccusage Delivery & Discovery
 
-This is the one real risk of the wrapper approach. Handling:
+ccusage is **bundled inside the app**, so there is no runtime Node dependency in the normal path. A self-contained `ccusage` binary (produced at build time — see plan) ships at `Burnt.app/Contents/Resources/ccusage`.
 
-**Discovery order** (`NodeProbe`):
-1. A bundled/known path to `ccusage` if the cask installs one (preferred — removes the npx spin-up cost).
-2. `ccusage` on `PATH`.
-3. `npx -y ccusage@latest` if `npx` is on `PATH`.
-4. None found → `EngineState.nodeMissing`.
+**Discovery order** (`CcusageLocator`):
+1. **Bundled binary** at `Bundle.main` Resources — the normal, preferred path. Instant, offline, no Node.
+2. `ccusage` on `PATH` (developer convenience / fallback).
+3. `npx -y ccusage@<pinnedVersion>` if `npx` is on `PATH` (last-resort fallback).
+4. None found → `EngineState.unavailable`.
 
-**Cask declaration:** the Homebrew cask declares `depends_on formula: "node"` so a fresh install pulls Node. (Whether to also vendor ccusage as a pinned dependency vs. rely on npx is decided in the plan; pinning avoids surprise format changes.)
+**Why bundle:** removes the ~150MB Node install, eliminates the multi-second `npx` cold-start on every reboot, and makes Burnt work offline. The bundled binary is the keystone UX decision — steps 2–3 exist only so a dev machine without the bundle still works.
 
-**In-app state:** when `nodeMissing`, the popover shows a friendly message with a one-line install hint (`brew install node`) and a "Recheck" button — never a silent blank or crash.
+**Cask declaration:** because ccusage is bundled, the cask does **not** force-install Node (`depends_on formula: "node"` is dropped). The only `depends_on` is the macOS version.
 
-**Performance:** `npx` cold-start can take seconds. To keep "today's burn" feeling instant, the menu bar shows the **last-good cached Summary immediately** on open, then refreshes in the background and updates in place. A pinned/known ccusage path (discovery step 1) is strongly preferred to minimize this.
+**In-app state:** the `.unavailable` state should be effectively unreachable in a real install (the binary is bundled). If it ever occurs, the popover shows a friendly diagnostic + "Recheck" button — never a silent blank or crash.
+
+**Pricing source & freshness:** ccusage prices models from the LiteLLM table, which it **fetches from the network by default** and can read from a **bundled cache via `--offline`**. Burnt exploits both:
+- The **60s background poll** runs `ccusage daily --json --offline` — cached pricing, no network, fast.
+- **Popover-open and manual refresh** run `ccusage daily --json` (online) — live pricing for the numbers the user is actively reading.
+
+The last-good `Summary` is shown immediately while any refresh runs, so the number never blanks. If an online fetch fails (no network), the engine surfaces the last-good `Summary` as `.stale` rather than erroring — the cached/offline numbers remain visible.
 
 ---
 
@@ -150,7 +161,7 @@ This is the one real risk of the wrapper approach. Handling:
 
 | Condition | Behavior |
 |---|---|
-| Node/npx/ccusage not found | `.nodeMissing` state: install hint + Recheck button. |
+| ccusage binary not found (should be unreachable — it's bundled) | `.unavailable` state: diagnostic + Recheck button. |
 | ccusage exits non-zero / times out | Show last-good cached Summary + "stale as of HH:MM" badge; log stderr. |
 | JSON decode fails (format drift) | Same as above + a distinct "couldn't read ccusage output" diagnostic; never crash. |
 | No usage data yet (empty array) | "No usage recorded yet" empty state. |
@@ -166,8 +177,8 @@ A failure must never present a **wrong-but-confident** number. Stale data is alw
 - **Decoding tests:** `DailyUsage`/`ModelBreakdown` decode the fixtures without loss.
 - **Aggregator tests (pure):** today filter, week boundary (Monday/local-time edge), tool split, by-model rollup, cache-savings math — all asserted against fixture-derived expected values.
 - **Golden-reference test:** Burnt's computed daily totals must equal `ccusage daily --json` totals to the cent (since we consume the same source, this guards our aggregation/rounding).
-- **Integration smoke test:** if ccusage is present on the CI/dev machine, run it for real and assert a well-formed Summary.
-- **NodeProbe tests:** simulate each discovery branch.
+- **Integration smoke test:** if ccusage is present (bundled or on PATH), run it for real and assert a well-formed Summary.
+- **CcusageLocator tests:** simulate each discovery branch (bundled binary, PATH, npx fallback, none).
 
 UI is intentionally thin and not the focus of automated testing; the engine holds the logic and the tests.
 
@@ -178,14 +189,37 @@ UI is intentionally thin and not the focus of automated testing; the engine hold
 - macOS app bundle `Burnt.app`, built with SwiftUI (`MenuBarExtra`).
 - Homebrew **cask** named `burnt` (token verified free on Homebrew core; `burn` was taken by an unrelated CD-burning app, so the display name is "Burnt" and the token is `burnt`).
 - Served initially from the user's own tap (`mafex/tap`) → `brew install --cask mafex/tap/burnt`, with the option to submit to official homebrew-cask later (token is unique there too).
-- Cask `depends_on formula: "node"`.
+- **ccusage is bundled** in the app, so the cask does **not** `depends_on node`. Only `depends_on macos: ">= :sonoma"`.
+
+### Code signing (UX decision)
+- v1 ships **ad-hoc signed** (no paid Apple Developer ID). On first launch macOS Gatekeeper shows "cannot be opened because Apple cannot check it…". The README documents the one-time **right-click → Open** (or System Settings → Privacy & Security → Open Anyway) step.
+- Notarization with a paid Developer ID ($99/yr) for a zero-warning install is explicitly deferred; revisit if distributing widely.
+
+### First-run user flow (target experience)
+1. `brew install --cask mafex/tap/burnt`
+2. Launch Burnt; first time, right-click → Open (documented).
+3. `◔ $X.XX` appears in the menu bar and **updates itself every 60s** (offline/cached pricing — no Node, no network, no spinner).
+4. Click for the week sparkline + tool/model breakdown + cache-savings line — opening the popover does a live price fetch so what you read is current.
 
 ---
 
-## 10. Open Questions for the Plan
+## 10. Resolved Decisions (formerly open questions)
 
-1. **Vendor/pin ccusage vs. rely on `npx -y ccusage@latest`?** Pinning a known-good version removes npx latency and format-drift risk but requires update maintenance. Lean: pin a version, refresh deliberately.
-2. **Exact tool-classification rule** for Claude vs Codex from `modelBreakdowns` (validate against live Codex rows).
-3. **Cache-savings presentation:** exact dollar vs "≈" approximate, and whether it's Claude-only.
-4. **Week definition:** Monday-start vs rolling 7 days (lean: rolling 7 days ending today, simpler and matches "this week's burn" intuition; confirm in plan).
+1. **ccusage delivery:** **bundle** a pinned, self-contained binary in the app (not `npx` at runtime). See §6. Removes Node dependency + cold-start.
+2. **Tool-classification rule:** by model-name prefix — `claude-*` → Claude; `gpt-*`/`o1`/`o3`/`codex*` → Codex; unknown → Claude (conservative default). Verified against live model names.
+3. **Cache-savings presentation:** approximate "≈ $Y saved via cache", **Claude-only**, from LiteLLM input-vs-cache-read rate delta.
+4. **Week definition:** **rolling 7 days** ending today (inclusive).
+5. **Refresh:** background poll every **60s** (offline/cached pricing) + on-open & manual button (live online pricing).
+6. **Code signing:** ad-hoc + documented right-click→Open for v1; notarization deferred.
+7. **Billing model:** **API (pay-per-token)** for v1; the `$` is real spend. Subscription accounts work (token data is plan-agnostic) but their `$` is API-equivalent value, documented as a caveat. Subscription "value" mode deferred to v2.
+
+---
+
+## 11. Future Paths (v2+)
+
+- **Subscription "value" mode:** a setting toggling the `$` framing between "spent" (API) and "≈ value / would-have-cost" (Pro/Max/Team), plus an optional "your plan costs $X/mo — usage value $Y" comparison. Same numbers, honest labels.
+- **By project / directory breakdown** (requires a thin raw-log reader for cwd; see §1 out-of-scope).
+- **Notarized, double-click install** (paid Apple Developer ID).
+- **Live file-watching** (FSEvents) for sub-second updates instead of the 60s poll.
+- **Launch-at-login** toggle.
 ```
