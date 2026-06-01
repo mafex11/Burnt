@@ -1,6 +1,6 @@
 cask "burnt" do
   version "1.0.0"
-  sha256 "a3ca8d6ff69d2dfc1f5f817581f0e0e02645cfc63d0a1a37f5ecae4fc42b28fe"
+  sha256 "d8f07c3962413e5476a4409b514858bcb3b7e0e4907f6bda53641165dc905793"
 
   url "https://github.com/mafex11/Burnt/releases/download/v#{version}/Burnt.zip"
   name "Burnt"
