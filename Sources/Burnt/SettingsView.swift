@@ -1,0 +1,52 @@
+import SwiftUI
+import BurntCore
+
+struct SettingsView: View {
+    @ObservedObject var settings: BurntCore.Settings
+    let onBack: () -> Void
+
+    // Local text for the budget field; 0 shows as empty.
+    @State private var budgetText: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Button(action: onBack) { Image(systemName: "chevron.left") }
+                    .buttonStyle(.borderless)
+                Text("Settings").font(.headline)
+                Spacer()
+            }
+
+            Picker("Menu bar shows", selection: $settings.menuBarMode) {
+                ForEach(MenuBarMode.allCases, id: \.self) { mode in
+                    Text(mode.label).tag(mode)
+                }
+            }
+
+            HStack {
+                Text("Daily budget")
+                Spacer()
+                Text("$")
+                TextField("off", text: $budgetText)
+                    .frame(width: 70)
+                    .multilineTextAlignment(.trailing)
+                    .onSubmit { commitBudget() }
+                    .onChange(of: budgetText) { _, _ in commitBudget() }
+            }
+
+            Toggle("Launch at login", isOn: $settings.launchAtLogin)
+
+            Spacer(minLength: 0)
+        }
+        .padding()
+        .frame(width: 300)
+        .onAppear {
+            budgetText = settings.dailyBudget > 0 ? String(format: "%.2f", settings.dailyBudget) : ""
+        }
+    }
+
+    private func commitBudget() {
+        let cleaned = budgetText.replacingOccurrences(of: "$", with: "").trimmingCharacters(in: .whitespaces)
+        settings.dailyBudget = Double(cleaned) ?? 0
+    }
+}
