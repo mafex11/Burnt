@@ -40,12 +40,15 @@ final class AppModel: ObservableObject {
     }
 
     /// The headline string for the menu bar label, per the chosen display mode.
+    /// Empty string means "icon only" (no text beside the flame).
     var menuBarText: String {
+        if settings.menuBarMode == .iconOnly { return "" }
         guard let s = currentSummary else { return "—" }
         switch settings.menuBarMode {
         case .todayCost:   return Formatters.cost(s.today.cost)
         case .todayTokens: return Formatters.tokens(s.today.totalTokens)
         case .weekCost:    return Formatters.cost(s.thisWeek.cost)
+        case .iconOnly:    return ""
         }
     }
 

@@ -2,13 +2,14 @@ import Foundation
 import Combine
 
 public enum MenuBarMode: String, CaseIterable, Sendable {
-    case todayCost, todayTokens, weekCost
+    case todayCost, todayTokens, weekCost, iconOnly
 
     public var label: String {
         switch self {
         case .todayCost: return "Today $"
         case .todayTokens: return "Today tokens"
         case .weekCost: return "Week $"
+        case .iconOnly: return "Icon only"
         }
     }
 }
