@@ -1,0 +1,90 @@
+import SwiftUI
+import UsageEngine
+import BurntCore
+
+struct SummaryView: View {
+    let summary: Summary
+    let stale: Date?
+    @ObservedObject var settings: BurntCore.Settings
+    let onGear: () -> Void
+    let onRefresh: () -> Void
+    let isLoading: Bool
+
+    private var heroValue: String { Formatters.cost(summary.today.cost) }
+    private var maxToolCost: Double { max(summary.byTool.map(\.cost).max() ?? 0.01, 0.01) }
+    private var maxModelCost: Double { max(summary.byModel.map(\.cost).max() ?? 0.01, 0.01) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(heroValue).font(.system(size: 30, weight: .semibold)).monospacedDigit()
+                    HStack(spacing: 6) {
+                        Text("today").font(.caption).foregroundStyle(.secondary)
+                        if let t = summary.weekTrend { TrendArrow(trend: t) }
+                    }
+                }
+                Spacer()
+                Button(action: onGear) { Image(systemName: "gearshape") }
+                    .buttonStyle(.borderless)
+            }
+
+            if settings.dailyBudget > 0 {
+                BudgetBar(spent: summary.today.cost, budget: settings.dailyBudget)
+            }
+
+            Divider()
+
+            HStack(spacing: 8) {
+                StatCell(label: "Week", value: Formatters.cost(summary.thisWeek.cost))
+                StatCell(label: "Month", value: Formatters.cost(summary.monthToDate.cost))
+                StatCell(label: "All-time", value: Formatters.cost(summary.allTime.cost))
+            }
+            HStack(spacing: 4) {
+                Text("avg \(Formatters.cost(summary.avgPerDay))/day")
+                if let p = summary.projectedToday {
+                    Text("· pace ~\(Formatters.cost(p)) today")
+                }
+            }
+            .font(.caption).foregroundStyle(.secondary)
+
+            Sparkline(points: summary.weekByDay)
+
+            sectionHeader("By tool")
+            ForEach(summary.byTool, id: \.tool) { t in
+                BreakdownBar(color: ToolColor.of(t.tool), label: t.tool.rawValue.capitalized,
+                             fraction: t.cost / maxToolCost, cost: t.cost, tokens: t.totalTokens)
+            }
+
+            sectionHeader("By model")
+            ForEach(summary.byModel.prefix(5), id: \.modelName) { m in
+                BreakdownBar(color: ToolColor.of(m.tool), label: m.modelName,
+                             fraction: m.cost / maxModelCost, cost: m.cost, tokens: m.totalTokens)
+            }
+
+            if summary.cacheSavings > 0.01 {
+                Text("≈ \(Formatters.cost(summary.cacheSavings)) saved via cache")
+                    .font(.caption).foregroundStyle(.green)
+            }
+
+            Divider()
+
+            HStack {
+                if let stale { StaleBadge(generatedAt: stale) }
+                Spacer()
+                Button(action: onRefresh) {
+                    Image(systemName: isLoading ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+                }.buttonStyle(.borderless)
+                Button("Quit") { NSApplication.shared.terminate(nil) }.buttonStyle(.borderless)
+            }
+        }
+        .padding()
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundStyle(.secondary)
+            .padding(.top, 2)
+    }
+}
