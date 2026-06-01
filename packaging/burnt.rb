@@ -1,3 +1,6 @@
+# typed: strict
+# frozen_string_literal: true
+
 cask "burnt" do
   version "1.0.0"
   sha256 "d8f07c3962413e5476a4409b514858bcb3b7e0e4907f6bda53641165dc905793"
@@ -12,13 +15,32 @@ cask "burnt" do
 
   app "Burnt.app"
 
-  caveats <<~EOS
-    Burnt is ad-hoc signed (not notarized). On first launch, macOS may say it
-    "cannot be opened". Right-click Burnt.app → Open, then click Open again —
-    a one-time step. Or: System Settings → Privacy & Security → Open Anyway.
-  EOS
+  zap trash: "~/Library/Preferences/dev.mafex.burnt.plist"
 
-  zap trash: [
-    "~/Library/Preferences/dev.mafex.burnt.plist",
-  ]
+  caveats <<~EOS
+
+            )
+           ) \\
+          /   (
+         (  )  )           ____                    _
+          \\ (  /          | __ ) _   _ _ __ _ __ | |_
+         ) /  (           |  _ \\| | | | '__| '_ \\| __|
+        ( ( )  )          | |_) | |_| | |  | | | | |_
+         \\  ) /           |____/ \\__,_|_|  |_| |_|\\__|
+        ) ( ( (
+       ( (  ) )  )        🔥 Burnt installed!
+        \\ (_) (_/
+         \\     /     Track every token you've burnt on
+          \\   /       Claude Code + Codex, right in your menu bar.
+           \\_/
+
+    First launch (one time only — Burnt is ad-hoc signed):
+      Right-click Burnt.app → Open → Open
+      (or: System Settings → Privacy & Security → Open Anyway)
+
+    Then look up — a 🔥 with today's spend sits in your menu bar.
+    Click it for the week, model breakdown, and cache savings.
+
+    How much have you burnt today?
+  EOS
 end
