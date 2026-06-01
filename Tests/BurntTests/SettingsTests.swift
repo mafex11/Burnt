@@ -12,6 +12,21 @@ final class SettingsTests: XCTestCase {
         XCTAssertEqual(s.menuBarMode, .todayCost)
         XCTAssertEqual(s.dailyBudget, 0)
         XCTAssertFalse(s.launchAtLogin)
+        XCTAssertEqual(s.dashboardStyle, .standard)   // defaults to Standard
+    }
+
+    func testPersistsDashboardStyle() {
+        let d = freshDefaults()
+        let s1 = Settings(defaults: d, loginItem: StubLoginItem())
+        s1.dashboardStyle = .minimal
+        let s2 = Settings(defaults: d, loginItem: StubLoginItem())
+        XCTAssertEqual(s2.dashboardStyle, .minimal)
+    }
+
+    func testDashboardStyleOrdering() {
+        XCTAssertTrue(DashboardStyle.minimal < .standard)
+        XCTAssertTrue(DashboardStyle.standard < .detailed)
+        XCTAssertTrue(DashboardStyle.detailed >= .standard)
     }
 
     func testPersistsMenuBarModeAndBudget() {

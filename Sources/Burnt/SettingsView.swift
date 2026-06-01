@@ -23,6 +23,12 @@ struct SettingsView: View {
                 }
             }
 
+            Picker("Dashboard style", selection: $settings.dashboardStyle) {
+                ForEach(DashboardStyle.allCases, id: \.self) { style in
+                    Text(style.label).tag(style)
+                }
+            }
+
             HStack {
                 Text("Daily budget")
                 Spacer()

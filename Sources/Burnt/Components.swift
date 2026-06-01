@@ -90,21 +90,46 @@ struct TrendArrow: View {
     }
 }
 
-/// A minimal bar sparkline for 7 daily cost points, with hover tooltips.
+/// A minimal bar sparkline for 7 daily cost points. Hovering a bar highlights it
+/// and shows its date + cost in a caption above the chart (a reliable alternative
+/// to `.help` tooltips, which don't fire consistently inside a menu bar popover).
 struct Sparkline: View {
     let points: [DayPoint]
+    @State private var hovered: String?   // the hovered point's date
+
+    private var caption: String {
+        if let key = hovered, let p = points.first(where: { $0.date == key }) {
+            return "\(prettyDate(p.date)) · \(Formatters.cost(p.cost))"
+        }
+        return "last 7 days"
+    }
+
     var body: some View {
         let maxCost = max(points.map(\.cost).max() ?? 1, 0.01)
-        HStack(alignment: .bottom, spacing: 3) {
-            ForEach(points, id: \.date) { p in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Color.accentColor)
-                    .frame(width: 14, height: max(4, CGFloat(p.cost / maxCost) * 40))
-                    .opacity(p.cost == 0 ? 0.25 : 1)
-                    .help("\(p.date) · \(Formatters.cost(p.cost))")
+        VStack(alignment: .leading, spacing: 4) {
+            Text(caption)
+                .font(.caption2)
+                .foregroundStyle(hovered == nil ? .secondary : .primary)
+            HStack(alignment: .bottom, spacing: 3) {
+                ForEach(points, id: \.date) { p in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(hovered == p.date ? Color.orange : Color.accentColor)
+                        .frame(width: 14, height: max(4, CGFloat(p.cost / maxCost) * 40))
+                        .opacity(p.cost == 0 ? 0.25 : 1)
+                        .onHover { inside in hovered = inside ? p.date : (hovered == p.date ? nil : hovered) }
+                }
             }
+            .frame(height: 44)
         }
-        .frame(height: 44)
+    }
+
+    /// "2026-06-08" -> "Jun 8".
+    private func prettyDate(_ iso: String) -> String {
+        let parts = iso.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return iso }
+        let months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"]
+        let m = parts[1] >= 1 && parts[1] <= 12 ? months[parts[1]-1] : "?"
+        return "\(m) \(parts[2])"
     }
 }
 

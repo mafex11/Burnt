@@ -14,6 +14,32 @@ public enum MenuBarMode: String, CaseIterable, Sendable {
     }
 }
 
+/// Popover information density. Levels are additive: each shows everything the
+/// lower level does, plus more — so `Comparable` ordering drives visibility.
+public enum DashboardStyle: String, CaseIterable, Sendable, Comparable {
+    case minimal, standard, detailed
+
+    public var label: String {
+        switch self {
+        case .minimal: return "Minimal"
+        case .standard: return "Standard"
+        case .detailed: return "Detailed"
+        }
+    }
+
+    private var rank: Int {
+        switch self {
+        case .minimal: return 0
+        case .standard: return 1
+        case .detailed: return 2
+        }
+    }
+
+    public static func < (lhs: DashboardStyle, rhs: DashboardStyle) -> Bool {
+        lhs.rank < rhs.rank
+    }
+}
+
 public final class Settings: ObservableObject {
     private let defaults: UserDefaults
     private let loginItem: LoginItemControlling
@@ -21,6 +47,7 @@ public final class Settings: ObservableObject {
     private enum Key {
         static let menuBarMode = "menuBarMode"
         static let dailyBudget = "dailyBudget"
+        static let dashboardStyle = "dashboardStyle"
     }
 
     public init(defaults: UserDefaults = .standard, loginItem: LoginItemControlling = LaunchAtLogin()) {
@@ -30,10 +57,17 @@ public final class Settings: ObservableObject {
         self._menuBarMode = Published(initialValue: MenuBarMode(rawValue: raw) ?? .todayCost)
         self._dailyBudget = Published(initialValue: defaults.double(forKey: Key.dailyBudget))
         self._launchAtLogin = Published(initialValue: loginItem.isEnabled)
+        // Default to Standard when unset.
+        let styleRaw = defaults.string(forKey: Key.dashboardStyle) ?? DashboardStyle.standard.rawValue
+        self._dashboardStyle = Published(initialValue: DashboardStyle(rawValue: styleRaw) ?? .standard)
     }
 
     @Published public var menuBarMode: MenuBarMode {
         didSet { defaults.set(menuBarMode.rawValue, forKey: Key.menuBarMode) }
+    }
+
+    @Published public var dashboardStyle: DashboardStyle {
+        didSet { defaults.set(dashboardStyle.rawValue, forKey: Key.dashboardStyle) }
     }
 
     @Published public var dailyBudget: Double {   // 0 = off
