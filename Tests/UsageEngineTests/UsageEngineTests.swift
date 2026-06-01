@@ -8,8 +8,7 @@ final class UsageEngineSmokeTests: XCTestCase {
             throw XCTSkip("ccusage not available on this machine (no bundle, no PATH, no npx)")
         }
         let engine = UsageEngine()
-        // Use offline for the test so it never depends on network availability in CI.
-        switch engine.loadSummary(offline: true) {
+        switch engine.loadSummary() {
         case .success(let s), .stale(let s, _):
             XCTAssertEqual(s.weekByDay.count, 7)
             XCTAssertGreaterThanOrEqual(s.thisWeek.cost, 0)

@@ -10,27 +10,22 @@ final class AppModel: ObservableObject {
     private let engine = UsageEngine()
     private var pollTimer: Timer?
 
-    /// Live, human-triggered refresh: fetches current LiteLLM prices (online).
-    /// Call from popover open and the manual refresh button.
-    func refresh() { load(offline: false) }
+    /// Refresh now (live pricing), used on popover open and the manual button.
+    func refresh() { load() }
 
-    /// Cheap background refresh: cached pricing, no network. Call from the 60s timer.
-    func pollRefresh() { load(offline: true) }
-
-    /// Refresh immediately (live), then poll every 60s offline so the menu bar
-    /// number stays live without a network call every minute.
+    /// Refresh immediately, then poll every 60s so the menu bar number stays live.
     func startAutoRefresh() {
         refresh()
         pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.pollRefresh() }
+            Task { @MainActor in self?.refresh() }
         }
     }
 
-    private func load(offline: Bool) {
+    private func load() {
         isLoading = true
         Task.detached { [engine] in
-            let r = engine.loadSummary(offline: offline)
+            let r = engine.loadSummary()
             await MainActor.run {
                 self.result = r
                 self.isLoading = false

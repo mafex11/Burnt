@@ -21,7 +21,13 @@ struct MenuBarView: View {
             }
         }
         .frame(width: 300)
-        .onAppear { model.refresh() }   // refresh on every popover open; 60s timer keeps it live in the background
+        .onAppear {
+            // LSUIElement apps don't auto-activate, so the window-style popover opens
+            // behind/ unfocused and hover events bleed to windows beneath. Activating
+            // brings the popover to the front and makes it key.
+            NSApp.activate(ignoringOtherApps: true)
+            model.refresh()             // refresh on every popover open; 60s timer keeps it live
+        }
     }
 
     @ViewBuilder

@@ -2,7 +2,7 @@ import Foundation
 
 public struct CcusageRunner: Sendable {
     /// Pinned ccusage version — bump deliberately after verifying JSON shape.
-    public static let pinnedVersion = "17.1.3"
+    public static let pinnedVersion = "20.0.6"
 
     public enum RunError: Error, Sendable {
         case nonZeroExit(code: Int32, stderr: String)
@@ -18,16 +18,15 @@ public struct CcusageRunner: Sendable {
         self.timeout = timeout
     }
 
-    /// Runs `ccusage daily --json` and decodes the result.
-    /// - Parameter offline: when true, appends `--offline` so ccusage uses cached
-    ///   pricing (no network). Used by the cheap 60s background poll. When false,
-    ///   ccusage fetches live LiteLLM prices — used for human-triggered refreshes.
-    public func fetchDailyReport(offline: Bool) throws -> CcusageReport {
+    /// Runs `ccusage daily --json` (always live pricing) and decodes the result.
+    ///
+    /// Pricing is always fetched online: the pinned ccusage's bundled offline price
+    /// cache lags real model prices, producing wildly wrong figures, so offline mode
+    /// is not used.
+    public func fetchDailyReport() throws -> CcusageReport {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: invocation.executable)
-        var args = invocation.leadingArgs + ["daily", "--json"]
-        if offline { args.append("--offline") }
-        process.arguments = args
+        process.arguments = invocation.leadingArgs + ["daily", "--json"]
 
         var env = ProcessInfo.processInfo.environment
         let extra = "/opt/homebrew/bin:/usr/local/bin"
@@ -38,30 +37,63 @@ public struct CcusageRunner: Sendable {
         process.standardOutput = out
         process.standardError = err
 
+        // Drain both pipes on background queues WHILE the process runs. ccusage can
+        // emit 100+ KB of JSON; if we waited for exit before reading, the child would
+        // block on a full pipe buffer and we'd deadlock until the timeout fired.
+        let outBox = DataBox(), errBox = DataBox()
+        let drain = DispatchGroup()
+        readInBackground(out.fileHandleForReading, into: outBox, group: drain)
+        readInBackground(err.fileHandleForReading, into: errBox, group: drain)
+
         try process.run()
 
-        // Enforce a timeout without blocking forever.
-        let deadline = Date().addingTimeInterval(timeout)
-        while process.isRunning && Date() < deadline {
-            usleep(50_000) // 50ms
-        }
-        if process.isRunning {
+        let finished = waitForExit(process, timeout: timeout)
+        guard finished else {
             process.terminate()
+            _ = drain.wait(timeout: .now() + 2)
             throw RunError.timedOut
         }
 
-        let outData = out.fileHandleForReading.readDataToEndOfFile()
-        let errData = err.fileHandleForReading.readDataToEndOfFile()
+        // Process has exited; ensure both readers have consumed everything (EOF).
+        drain.wait()
 
         guard process.terminationStatus == 0 else {
             throw RunError.nonZeroExit(code: process.terminationStatus,
-                stderr: String(decoding: errData, as: UTF8.self))
+                stderr: String(decoding: errBox.data, as: UTF8.self))
         }
 
         do {
-            return try JSONDecoder().decode(CcusageReport.self, from: outData)
+            return try JSONDecoder().decode(CcusageReport.self, from: outBox.data)
         } catch {
             throw RunError.decodeFailed(String(describing: error))
         }
     }
+
+    /// Reads a file handle to EOF on a background queue, storing the bytes in `box`.
+    private func readInBackground(_ handle: FileHandle, into box: DataBox, group: DispatchGroup) {
+        group.enter()
+        DispatchQueue.global(qos: .utility).async {
+            let data = handle.readDataToEndOfFile()
+            box.data = data
+            group.leave()
+        }
+    }
+
+    /// Waits up to `timeout` seconds for the process to exit. Returns true if it
+    /// exited in time, false on timeout. Uses the process's own termination handler
+    /// rather than a busy-wait.
+    private func waitForExit(_ process: Process, timeout: TimeInterval) -> Bool {
+        let sema = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in sema.signal() }
+        // If the process already finished before the handler was set, signal now.
+        if !process.isRunning { return true }
+        return sema.wait(timeout: .now() + timeout) == .success
+    }
+}
+
+/// A reference box so a background queue can hand bytes back without data races on
+/// a captured `var`. Access is synchronized by the DispatchGroup (write happens-before
+/// the group's wait() returns).
+private final class DataBox: @unchecked Sendable {
+    var data = Data()
 }

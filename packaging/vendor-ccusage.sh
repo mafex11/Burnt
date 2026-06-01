@@ -2,7 +2,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-PINNED="17.1.3"   # MUST match CcusageRunner.pinnedVersion
+PINNED="20.0.6"   # MUST match CcusageRunner.pinnedVersion
 OUT="packaging/vendor/ccusage"
 mkdir -p packaging/vendor
 
