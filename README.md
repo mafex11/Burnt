@@ -1,6 +1,6 @@
 <div align="center">
 
-# Burnt 🔥
+# Burnt
 
 **See how much you've burnt on Claude Code and Codex — right in your menu bar.**
 
@@ -81,7 +81,7 @@ Burnt installs, strips quarantine, and launches itself straight into your menu b
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢢⡙⢦⡙⡔⢣⠈⢀⠂⠈⡀⠐⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠂⠴⢉⠆⡁⠀⡀⠁⢀⠐⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 
-  🔥 Burnt is now live in your menu bar!
+  Burnt is now live in your menu bar.
 
   Track every token you've burnt on Claude Code + Codex.
   Click it for the week, model breakdown, and cache savings.
@@ -101,7 +101,7 @@ Burnt is ad-hoc signed (not notarized), so on first launch macOS may say *"Burnt
 - **Right-click** `Burnt.app` → **Open** → **Open**, or
 - **System Settings → Privacy & Security → Open Anyway**
 
-You only need to do this once. After that, a **🔥 $X.XX** appears in your menu bar and refreshes automatically.
+You only need to do this once. After that, the flame icon with today's spend appears in your menu bar and refreshes automatically.
 
 No system Node.js or other dependencies are required — a self-contained Node runtime and `ccusage` are bundled inside the app.
 
