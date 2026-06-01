@@ -1,0 +1,77 @@
+{
+ "daily": [
+  {
+   "agent": "all",
+   "cacheCreationTokens": 0,
+   "cacheReadTokens": 41492096,
+   "inputTokens": 3222396,
+   "metadata": {
+    "agents": [
+     "codex"
+    ]
+   },
+   "modelBreakdowns": [
+    {
+     "cacheCreationTokens": 0,
+     "cacheReadTokens": 41492096,
+     "cost": 21.6694618,
+     "inputTokens": 3222396,
+     "modelName": "gpt-5.2-codex",
+     "outputTokens": 626368
+    }
+   ],
+   "modelsUsed": [
+    "gpt-5.2-codex"
+   ],
+   "outputTokens": 626368,
+   "period": "2026-01-30",
+   "totalCost": 21.6694618,
+   "totalTokens": 45340860
+  },
+  {
+   "agent": "all",
+   "cacheCreationTokens": 14749460,
+   "cacheReadTokens": 331569605,
+   "inputTokens": 45545,
+   "metadata": {
+    "agents": [
+     "claude"
+    ]
+   },
+   "modelBreakdowns": [
+    {
+     "cacheCreationTokens": 14110234,
+     "cacheReadTokens": 317516056,
+     "cost": 256.1152505,
+     "inputTokens": 29727,
+     "modelName": "claude-opus-4-7",
+     "outputTokens": 360785
+    },
+    {
+     "cacheCreationTokens": 639226,
+     "cacheReadTokens": 14053549,
+     "cost": 2.444635399999999,
+     "inputTokens": 15818,
+     "modelName": "claude-haiku-4-5-20251001",
+     "outputTokens": 44886
+    }
+   ],
+   "modelsUsed": [
+    "claude-haiku-4-5-20251001",
+    "claude-opus-4-7"
+   ],
+   "outputTokens": 405671,
+   "period": "2026-05-05",
+   "totalCost": 258.55988589999976,
+   "totalTokens": 346770281
+  }
+ ],
+ "totals": {
+  "cacheCreationTokens": 306159669,
+  "cacheReadTokens": 11078379056,
+  "inputTokens": 683093270,
+  "outputTokens": 31975228,
+  "totalCost": 7468.346583849998,
+  "totalTokens": 12099607223
+ }
+}
