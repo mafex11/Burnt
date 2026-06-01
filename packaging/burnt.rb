@@ -1,6 +1,6 @@
 cask "burnt" do
   version "1.0.0"
-  sha256 :no_check # replace with real sha256 once a release zip is published
+  sha256 "a3ca8d6ff69d2dfc1f5f817581f0e0e02645cfc63d0a1a37f5ecae4fc42b28fe"
 
   url "https://github.com/mafex11/Burnt/releases/download/v#{version}/Burnt.zip"
   name "Burnt"
