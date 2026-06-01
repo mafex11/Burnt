@@ -1,14 +1,20 @@
 import Foundation
 import SwiftUI
 import UsageEngine
+import BurntCore
 
 @MainActor
 final class AppModel: ObservableObject {
     @Published var result: EngineResult = .noData
     @Published var isLoading = false
 
+    let settings: BurntCore.Settings
     private let engine = UsageEngine()
     private var pollTimer: Timer?
+
+    init(settings: BurntCore.Settings = BurntCore.Settings()) {
+        self.settings = settings
+    }
 
     /// Refresh now (live pricing), used on popover open and the manual button.
     func refresh() { load() }
@@ -33,13 +39,20 @@ final class AppModel: ObservableObject {
         }
     }
 
-    /// The headline string for the menu bar label.
+    /// The headline string for the menu bar label, per the chosen display mode.
     var menuBarText: String {
+        guard let s = currentSummary else { return "—" }
+        switch settings.menuBarMode {
+        case .todayCost:   return Formatters.cost(s.today.cost)
+        case .todayTokens: return Formatters.tokens(s.today.totalTokens)
+        case .weekCost:    return Formatters.cost(s.thisWeek.cost)
+        }
+    }
+
+    private var currentSummary: Summary? {
         switch result {
-        case .success(let s), .stale(let s, _):
-            return String(format: "$%.2f", s.today.cost)
-        case .unavailable, .noData:
-            return "—"
+        case .success(let s), .stale(let s, _): return s
+        case .unavailable, .noData: return nil
         }
     }
 }
