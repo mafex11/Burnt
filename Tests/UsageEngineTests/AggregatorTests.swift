@@ -73,6 +73,60 @@ final class AggregatorTests: XCTestCase {
         let s = Aggregator.summary(from: r, referenceDate: ref)
         XCTAssertEqual(s.cacheSavings, 13.50, accuracy: 0.01) // claude only
     }
+
+    func testMonthToDateSumsCalendarMonth() {
+        let r = report([
+            day("2026-06-08", cost: 3, models: [mb("claude-opus-4-8", cost: 3, total: 10)]),
+            day("2026-06-02", cost: 4, models: [mb("claude-opus-4-8", cost: 4, total: 10)]),
+            day("2026-05-30", cost: 9, models: [mb("claude-opus-4-8", cost: 9, total: 10)]),
+        ])
+        let s = Aggregator.summary(from: r, referenceDate: ref)
+        XCTAssertEqual(s.monthToDate.cost, 7, accuracy: 0.001)
+    }
+
+    func testAllTimeFromReportTotals() {
+        let r = CcusageReport(daily: [], totals: .init(inputTokens: 1, outputTokens: 2,
+            cacheCreationTokens: 3, cacheReadTokens: 4, totalTokens: 10, totalCost: 99.5))
+        let s = Aggregator.summary(from: r, referenceDate: ref)
+        XCTAssertEqual(s.allTime.cost, 99.5, accuracy: 0.001)
+        XCTAssertEqual(s.allTime.totalTokens, 10)
+    }
+
+    func testAvgPerDayIsWeekOverSeven() {
+        let r = report([day("2026-06-08", cost: 7, models: [mb("claude-opus-4-8", cost: 7, total: 10)])])
+        let s = Aggregator.summary(from: r, referenceDate: ref)
+        XCTAssertEqual(s.avgPerDay, 1.0, accuracy: 0.001)
+    }
+
+    func testLastWeekWindowAndTrend() {
+        let r = report([
+            day("2026-06-08", cost: 2, models: [mb("claude-opus-4-8", cost: 2, total: 10)]),
+            day("2026-06-01", cost: 1, models: [mb("claude-opus-4-8", cost: 1, total: 10)]),
+        ])
+        let s = Aggregator.summary(from: r, referenceDate: ref)
+        XCTAssertEqual(s.lastWeek.cost, 1, accuracy: 0.001)
+        XCTAssertEqual(s.weekTrend ?? -999, 1.0, accuracy: 0.001)
+    }
+
+    func testWeekTrendNilWhenNoLastWeek() {
+        let r = report([day("2026-06-08", cost: 2, models: [mb("claude-opus-4-8", cost: 2, total: 10)])])
+        let s = Aggregator.summary(from: r, referenceDate: ref)
+        XCTAssertNil(s.weekTrend)
+    }
+
+    func testProjectedTodayNilEarlyMorning() {
+        let early = Calendar(identifier: .gregorian).date(bySettingHour: 0, minute: 30, second: 0, of: ref)!
+        let r = report([day("2026-06-08", cost: 1, models: [mb("claude-opus-4-8", cost: 1, total: 10)])])
+        let s = Aggregator.summary(from: r, referenceDate: early)
+        XCTAssertNil(s.projectedToday)
+    }
+
+    func testProjectedTodayExtrapolatesMidday() {
+        let noon = Calendar(identifier: .gregorian).date(bySettingHour: 12, minute: 0, second: 0, of: ref)!
+        let r = report([day("2026-06-08", cost: 5, models: [mb("claude-opus-4-8", cost: 5, total: 10)])])
+        let s = Aggregator.summary(from: r, referenceDate: noon)
+        XCTAssertEqual(s.projectedToday ?? -1, 10.0, accuracy: 0.1)
+    }
 }
 
 extension ISO8601DateFormatter {

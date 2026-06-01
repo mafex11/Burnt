@@ -39,5 +39,11 @@ public struct Summary: Sendable, Equatable {
     public let byTool: [ToolSlice]       // week range
     public let byModel: [ModelSlice]     // week range, sorted by cost desc
     public let cacheSavings: Double      // week range, Claude-only, approximate
+    public let monthToDate: Totals       // sum of daily rows in referenceDate's calendar month
+    public let allTime: Totals           // from CcusageReport.totals
+    public let avgPerDay: Double         // thisWeek.cost / 7
+    public let lastWeek: Totals          // 7 days before thisWeek (offsets -13..-7)
+    public let weekTrend: Double?        // (thisWeek-lastWeek)/lastWeek; nil if lastWeek.cost == 0
+    public let projectedToday: Double?   // today.cost / fractionOfDayElapsed; nil if too early
     public let generatedAt: Date
 }

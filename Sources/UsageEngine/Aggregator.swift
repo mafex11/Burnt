@@ -65,8 +65,17 @@ public enum Aggregator {
         let byModel = modelAgg.map { ModelSlice(modelName: $0.key, tool: $0.value.0, cost: $0.value.1, totalTokens: $0.value.2) }
             .sorted { $0.cost > $1.cost }
 
+        let month = monthToDate(report, today)
+        let all = allTime(report)
+        let avg = weekTotals.cost / 7.0
+        let last = lastWeekTotals(report, today)
+        let trend: Double? = last.cost == 0 ? nil : (weekTotals.cost - last.cost) / last.cost
+        let projected = projectedToday(todayTotals.cost, referenceDate)
+
         return Summary(today: todayTotals, thisWeek: weekTotals, weekByDay: points,
-            byTool: byTool, byModel: byModel, cacheSavings: cacheSavings, generatedAt: referenceDate)
+            byTool: byTool, byModel: byModel, cacheSavings: cacheSavings,
+            monthToDate: month, allTime: all, avgPerDay: avg, lastWeek: last,
+            weekTrend: trend, projectedToday: projected, generatedAt: referenceDate)
     }
 
     private static func totals(for d: DailyUsage) -> Totals {
@@ -81,5 +90,44 @@ public enum Aggregator {
             cacheCreationTokens: a.cacheCreationTokens + b.cacheCreationTokens,
             cacheReadTokens: a.cacheReadTokens + b.cacheReadTokens,
             totalTokens: a.totalTokens + b.totalTokens)
+    }
+
+    private static func monthToDate(_ report: CcusageReport, _ today: Date) -> Totals {
+        let comps = cal.dateComponents([.year, .month], from: today)
+        var t = Totals()
+        for d in report.daily {
+            guard let date = parse(d.period) else { continue }
+            let dc = cal.dateComponents([.year, .month], from: date)
+            if dc.year == comps.year && dc.month == comps.month {
+                t = add(t, totals(for: d))
+            }
+        }
+        return t
+    }
+
+    private static func allTime(_ report: CcusageReport) -> Totals {
+        let x = report.totals
+        return Totals(cost: x.totalCost, inputTokens: x.inputTokens, outputTokens: x.outputTokens,
+            cacheCreationTokens: x.cacheCreationTokens, cacheReadTokens: x.cacheReadTokens,
+            totalTokens: x.totalTokens)
+    }
+
+    private static func lastWeekTotals(_ report: CcusageReport, _ today: Date) -> Totals {
+        let end = cal.date(byAdding: .day, value: -7, to: today)!
+        let start = cal.date(byAdding: .day, value: -13, to: today)!
+        var t = Totals()
+        for d in report.daily {
+            guard let date = parse(d.period) else { continue }
+            if date >= start && date <= end { t = add(t, totals(for: d)) }
+        }
+        return t
+    }
+
+    private static func projectedToday(_ todayCost: Double, _ referenceDate: Date) -> Double? {
+        let startOfDay = cal.startOfDay(for: referenceDate)
+        let elapsed = referenceDate.timeIntervalSince(startOfDay)
+        let fraction = elapsed / 86_400.0
+        guard fraction >= 0.1 else { return nil }
+        return todayCost / fraction
     }
 }
