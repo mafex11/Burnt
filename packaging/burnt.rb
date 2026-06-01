@@ -15,6 +15,19 @@ cask "burnt" do
 
   app "Burnt.app"
 
+  # Burnt is ad-hoc signed (not notarized). Strip the quarantine flag so the app
+  # opens on a normal double-click without the "cannot be opened" Gatekeeper prompt,
+  # then launch it so it lands in the menu bar immediately after install.
+  postflight do
+    system_command "/usr/bin/xattr",
+                   args: ["-dr", "com.apple.quarantine", "#{appdir}/Burnt.app"],
+                   sudo: false
+    system_command "/usr/bin/open", args: ["#{appdir}/Burnt.app"], sudo: false
+  end
+
+  uninstall quit:   "dev.mafex.burnt",
+            signal: ["TERM", "dev.mafex.burnt"]
+
   zap trash: "~/Library/Preferences/dev.mafex.burnt.plist"
 
   caveats <<~EOS
@@ -51,17 +64,14 @@ cask "burnt" do
     ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠙⢢⡙⢦⡙⡔⢣⠈⢀⠂⠈⡀⠐⠀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
     ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢤⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠂⠴⢉⠆⡁⠀⡀⠁⢀⠐⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 
-      🔥 Burnt installed!
+      🔥 Burnt is now live in your menu bar!
 
-      Track every token you've burnt on Claude Code + Codex,
-      right in your menu bar.
-
-      First launch (one time only — Burnt is ad-hoc signed):
-        Right-click Burnt.app → Open → Open
-        (or: System Settings → Privacy & Security → Open Anyway)
-
-      Then look up — a 🔥 with today's spend sits in your menu bar.
+      Track every token you've burnt on Claude Code + Codex.
+      Look up — a 🔥 with today's spend sits in your menu bar.
       Click it for the week, model breakdown, and cache savings.
+
+      (If it didn't open automatically, launch it from /Applications.
+       Burnt is ad-hoc signed; if macOS blocks it, right-click → Open.)
 
       How much have you burnt today?
   EOS
