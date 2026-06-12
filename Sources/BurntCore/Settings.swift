@@ -48,6 +48,9 @@ public final class Settings: ObservableObject {
         static let menuBarMode = "menuBarMode"
         static let dailyBudget = "dailyBudget"
         static let dashboardStyle = "dashboardStyle"
+        static let notifyBudget = "notifyBudget"
+        static let notifyDailySummary = "notifyDailySummary"
+        static let notifyMilestones = "notifyMilestones"
     }
 
     public init(defaults: UserDefaults = .standard, loginItem: LoginItemControlling = LaunchAtLogin()) {
@@ -60,6 +63,9 @@ public final class Settings: ObservableObject {
         // Default to Standard when unset.
         let styleRaw = defaults.string(forKey: Key.dashboardStyle) ?? DashboardStyle.standard.rawValue
         self._dashboardStyle = Published(initialValue: DashboardStyle(rawValue: styleRaw) ?? .standard)
+        self._notifyBudget = Published(initialValue: defaults.bool(forKey: Key.notifyBudget))
+        self._notifyDailySummary = Published(initialValue: defaults.bool(forKey: Key.notifyDailySummary))
+        self._notifyMilestones = Published(initialValue: defaults.bool(forKey: Key.notifyMilestones))
     }
 
     @Published public var menuBarMode: MenuBarMode {
@@ -72,6 +78,18 @@ public final class Settings: ObservableObject {
 
     @Published public var dailyBudget: Double {   // 0 = off
         didSet { defaults.set(dailyBudget, forKey: Key.dailyBudget) }
+    }
+
+    @Published public var notifyBudget: Bool {
+        didSet { defaults.set(notifyBudget, forKey: Key.notifyBudget) }
+    }
+
+    @Published public var notifyDailySummary: Bool {
+        didSet { defaults.set(notifyDailySummary, forKey: Key.notifyDailySummary) }
+    }
+
+    @Published public var notifyMilestones: Bool {
+        didSet { defaults.set(notifyMilestones, forKey: Key.notifyMilestones) }
     }
 
     @Published public var launchAtLogin: Bool {

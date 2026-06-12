@@ -47,4 +47,17 @@ final class SettingsTests: XCTestCase {
         s.launchAtLogin = false
         XCTAssertFalse(stub.isEnabled)
     }
+
+    func testNotificationTogglesDefaultOffAndPersist() {
+        let d = freshDefaults()
+        let s1 = Settings(defaults: d, loginItem: StubLoginItem())
+        XCTAssertFalse(s1.notifyBudget)
+        XCTAssertFalse(s1.notifyDailySummary)
+        XCTAssertFalse(s1.notifyMilestones)
+        s1.notifyBudget = true; s1.notifyMilestones = true
+        let s2 = Settings(defaults: d, loginItem: StubLoginItem())
+        XCTAssertTrue(s2.notifyBudget)
+        XCTAssertTrue(s2.notifyMilestones)
+        XCTAssertFalse(s2.notifyDailySummary)
+    }
 }
