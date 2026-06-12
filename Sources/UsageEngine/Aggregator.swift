@@ -47,6 +47,16 @@ public enum Aggregator {
             points.append(DayPoint(date: k, cost: costByDay[k] ?? 0))
         }
 
+        // 84-day series for the heatmap, same zero-filled construction over all rows.
+        let costByDayAll = Dictionary(grouping: report.daily, by: { $0.period })
+            .mapValues { $0.reduce(0) { $0 + $1.totalCost } }
+        var heatPoints: [DayPoint] = []
+        for offset in stride(from: 83, through: 0, by: -1) {
+            let date = cal.date(byAdding: .day, value: -offset, to: today)!
+            let k = key(date)
+            heatPoints.append(DayPoint(date: k, cost: costByDayAll[k] ?? 0))
+        }
+
         var toolCost: [Tool: (Double, Int)] = [:]
         var modelAgg: [String: (Tool, Double, Int)] = [:]
         var cacheSavings = 0.0
@@ -75,7 +85,7 @@ public enum Aggregator {
         let projected = projectedToday(todayTotals.cost, referenceDate)
 
         return Summary(today: todayTotals, thisWeek: weekTotals, weekByDay: points,
-            byTool: byTool, byModel: byModel, cacheSavings: cacheSavings,
+            heatmapDays: heatPoints, byTool: byTool, byModel: byModel, cacheSavings: cacheSavings,
             monthToDate: month, allTime: all, avgPerDay: avg, lastWeek: last,
             weekTrend: trend, projectedToday: projected, generatedAt: referenceDate)
     }

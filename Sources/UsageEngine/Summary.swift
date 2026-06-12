@@ -36,6 +36,7 @@ public struct Summary: Sendable, Equatable {
     public let today: Totals
     public let thisWeek: Totals          // rolling 7 days ending on referenceDate
     public let weekByDay: [DayPoint]     // 7 points oldest→newest, zero-filled
+    public let heatmapDays: [DayPoint]   // 84 points oldest→newest, zero-filled (heatmap)
     public let byTool: [ToolSlice]       // week range
     public let byModel: [ModelSlice]     // week range, sorted by cost desc
     public let cacheSavings: Double      // week range, Claude-only, approximate

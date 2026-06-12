@@ -127,6 +127,15 @@ final class AggregatorTests: XCTestCase {
         let s = Aggregator.summary(from: r, referenceDate: noon)
         XCTAssertEqual(s.projectedToday ?? -1, 10.0, accuracy: 0.1)
     }
+
+    func testHeatmapDaysIsEightyFourZeroFilled() {
+        let r = report([day("2026-06-08", cost: 1, models: [mb("claude-opus-4-8", cost: 1, total: 10)])])
+        let s = Aggregator.summary(from: r, referenceDate: ref)
+        XCTAssertEqual(s.heatmapDays.count, 84)
+        XCTAssertEqual(s.heatmapDays.last?.date, "2026-06-08")
+        XCTAssertEqual(s.heatmapDays.first?.date, "2026-03-17")
+        XCTAssertEqual(s.heatmapDays.last?.cost ?? -1, 1, accuracy: 0.001)
+    }
 }
 
 extension ISO8601DateFormatter {
