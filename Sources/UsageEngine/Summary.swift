@@ -32,6 +32,13 @@ public struct ModelSlice: Sendable, Equatable {
     public let totalTokens: Int
 }
 
+public struct ProjectSlice: Sendable, Equatable {
+    public let name: String     // display leaf, e.g. "personal"
+    public let path: String     // full cwd (dedup key); "" for the Unknown bucket
+    public let cost: Double
+    public let totalTokens: Int
+}
+
 public struct Summary: Sendable, Equatable {
     public let today: Totals
     public let thisWeek: Totals          // rolling 7 days ending on referenceDate
