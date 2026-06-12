@@ -59,28 +59,55 @@ public enum ProjectAttributor {
         return map
     }
 
+    /// First "cwd" value found in a Claude jsonl. Claude puts cwd on a message line
+    /// (often line ~2-3), and the first line can be very large, so we stream lines
+    /// (not a fixed byte window) and scan up to `maxLines`.
     private static func firstCwd(in url: URL) -> String? {
-        guard let h = try? FileHandle(forReadingFrom: url) else { return nil }
-        defer { try? h.close() }
-        let data = h.readData(ofLength: 64_000)
-        guard let text = String(data: data, encoding: .utf8) else { return nil }
-        for line in text.split(separator: "\n") {
+        for line in lines(of: url, maxLines: 60) {
             if let obj = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any],
                let cwd = obj["cwd"] as? String { return cwd }
         }
         return nil
     }
 
+    /// Codex session_meta (typically line 1) → (id, cwd). payload may be nested.
     private static func codexIdAndCwd(in url: URL) -> (String, String)? {
-        guard let h = try? FileHandle(forReadingFrom: url) else { return nil }
+        for line in lines(of: url, maxLines: 5) {
+            guard let obj = try? JSONSerialization.jsonObject(with: Data(line.utf8)) as? [String: Any]
+            else { continue }
+            let p = (obj["payload"] as? [String: Any]) ?? obj
+            if let id = p["id"] as? String, let cwd = p["cwd"] as? String { return (id, cwd) }
+        }
+        return nil
+    }
+
+    /// Reads up to `maxLines` newline-delimited lines from a file without loading
+    /// the whole thing into memory at once. Robust to very large individual lines.
+    private static func lines(of url: URL, maxLines: Int) -> [String] {
+        guard let h = try? FileHandle(forReadingFrom: url) else { return [] }
         defer { try? h.close() }
-        let data = h.readData(ofLength: 64_000)
-        guard let text = String(data: data, encoding: .utf8),
-              let firstLine = text.split(separator: "\n").first,
-              let obj = try? JSONSerialization.jsonObject(with: Data(firstLine.utf8)) as? [String: Any]
-        else { return nil }
-        let p = (obj["payload"] as? [String: Any]) ?? obj
-        guard let id = p["id"] as? String, let cwd = p["cwd"] as? String else { return nil }
-        return (id, cwd)
+        var out: [String] = []
+        var buffer = Data()
+        let chunkSize = 1 << 16   // 64KB chunks
+        let newline = UInt8(ascii: "\n")
+        let hardCap = 8 << 20     // never buffer more than 8MB looking for newlines
+
+        while out.count < maxLines {
+            // extract any complete lines already in the buffer
+            while let nl = buffer.firstIndex(of: newline) {
+                let lineData = buffer.subdata(in: buffer.startIndex..<nl)
+                buffer.removeSubrange(buffer.startIndex...nl)
+                if let s = String(data: lineData, encoding: .utf8) { out.append(s) }
+                if out.count >= maxLines { return out }
+            }
+            if buffer.count > hardCap { break }   // pathological single line; give up
+            let chunk = h.readData(ofLength: chunkSize)
+            if chunk.isEmpty {   // EOF: flush any trailing partial line
+                if !buffer.isEmpty, let s = String(data: buffer, encoding: .utf8) { out.append(s) }
+                break
+            }
+            buffer.append(chunk)
+        }
+        return out
     }
 }

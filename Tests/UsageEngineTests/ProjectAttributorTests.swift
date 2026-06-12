@@ -31,4 +31,27 @@ final class ProjectAttributorTests: XCTestCase {
         let result = ProjectAttributor.group(sessions: sessions, cwdBySession: cwdMap)
         XCTAssertEqual(Set(result.map(\.name)), Set(["x/api", "y/api"]))
     }
+
+    func testBuildCwdMapReadsCwdBeyond64KBFirstLine() throws {
+        let fm = FileManager.default
+        let tmp = fm.temporaryDirectory.appendingPathComponent("burnt-test-\(UUID().uuidString)")
+        let projDir = tmp.appendingPathComponent(".claude/projects/somedir")
+        try fm.createDirectory(at: projDir, withIntermediateDirectories: true)
+        // session file: line 1 is a giant cwd-less object, line 2 has the cwd.
+        let sid = "11111111-2222-3333-4444-555555555555"
+        let huge = String(repeating: "x", count: 80_000)
+        let line1 = "{\"type\":\"user\",\"blob\":\"\(huge)\"}"
+        let line2 = "{\"type\":\"assistant\",\"cwd\":\"/Users/me/code/myproj\"}"
+        try "\(line1)\n\(line2)\n".write(to: projDir.appendingPathComponent("\(sid).jsonl"),
+                                         atomically: true, encoding: .utf8)
+        // empty codex dir so the enumerator no-ops
+        let codexRoot = tmp.appendingPathComponent(".codex")
+        try fm.createDirectory(at: codexRoot.appendingPathComponent("sessions"), withIntermediateDirectories: true)
+
+        let map = ProjectAttributor.buildCwdMap(
+            claudeRoot: tmp.appendingPathComponent(".claude"),
+            codexRoot: codexRoot)
+        XCTAssertEqual(map[sid], "/Users/me/code/myproj")
+        try? fm.removeItem(at: tmp)
+    }
 }
