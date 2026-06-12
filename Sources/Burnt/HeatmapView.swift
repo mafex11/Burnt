@@ -58,25 +58,40 @@ struct HeatmapView: View {
         stride(from: 0, to: days.count, by: 7).map { Array(days[$0..<min($0+7, days.count)]) }
     }
 
+    // Popover content is ~268pt wide (300 − padding); 12 columns + 11 gaps of 3pt
+    // → cell ≈ 19.5pt. The grid is 7 rows tall, so reserve that height for the
+    // GeometryReader (which otherwise collapses).
+    private var gridHeight: CGFloat {
+        let cols = max(weeks.count, 1)
+        let gap: CGFloat = 3
+        let assumedWidth: CGFloat = 268
+        let cell = max(8, (assumedWidth - gap * CGFloat(cols - 1)) / CGFloat(cols))
+        return cell * 7 + gap * 6
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(hovered.flatMap { key in days.first { $0.date == key }.map { "\(pretty($0.date)) · \(Formatters.cost($0.cost))" } } ?? "last 12 weeks")
                 .font(.caption2).foregroundStyle(hovered == nil ? .secondary : .primary)
-            HStack(spacing: 3) {
-                ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
-                    VStack(spacing: 3) {
-                        ForEach(week, id: \.date) { d in
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(color(for: d.cost))
-                                .frame(maxWidth: .infinity)
-                                .aspectRatio(1, contentMode: .fit)
-                                .onHover { inside in hovered = inside ? d.date : (hovered == d.date ? nil : hovered) }
+            // Cells sized from the available width so the grid spans the popover.
+            GeometryReader { geo in
+                let cols = weeks.count                       // 12
+                let gap: CGFloat = 3
+                let cell = max(8, (geo.size.width - gap * CGFloat(cols - 1)) / CGFloat(cols))
+                HStack(spacing: gap) {
+                    ForEach(Array(weeks.enumerated()), id: \.offset) { _, week in
+                        VStack(spacing: gap) {
+                            ForEach(week, id: \.date) { d in
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(color(for: d.cost))
+                                    .frame(width: cell, height: cell)
+                                    .onHover { inside in hovered = inside ? d.date : (hovered == d.date ? nil : hovered) }
+                            }
                         }
                     }
-                    .frame(maxWidth: .infinity)
                 }
             }
-            .frame(maxWidth: .infinity)
+            .frame(height: gridHeight)
             // Legend: $0 → $1000+ ramp (spans full width).
             HStack(spacing: 4) {
                 Text("$0").font(.system(size: 9)).foregroundStyle(.secondary)
