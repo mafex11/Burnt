@@ -25,8 +25,8 @@ struct SummaryView: View {
                     Text(heroValue).font(.system(size: 30, weight: .semibold)).monospacedDigit()
                     HStack(spacing: 6) {
                         Text("today").font(.caption).foregroundStyle(.secondary)
-                        // Trend: Standard and up.
-                        if style >= .standard, let t = summary.weekTrend { TrendArrow(trend: t) }
+                        // Trend shown at every level — it's part of the hero.
+                        if let t = summary.weekTrend { TrendArrow(trend: t) }
                     }
                 }
                 Spacer()
@@ -65,7 +65,8 @@ struct SummaryView: View {
             // Sparkline — shown at every level.
             Sparkline(points: summary.weekByDay)
 
-            if style >= .detailed {
+            // Heatmap — Standard and up (the signature visual; Minimal stays a glance).
+            if style >= .standard {
                 sectionHeader("Last 12 weeks")
                 HeatmapView(days: summary.heatmapDays)
             }
