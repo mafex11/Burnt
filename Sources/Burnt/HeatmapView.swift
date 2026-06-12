@@ -68,20 +68,24 @@ struct HeatmapView: View {
                         ForEach(week, id: \.date) { d in
                             RoundedRectangle(cornerRadius: 2)
                                 .fill(color(for: d.cost))
-                                .frame(width: 13, height: 13)
+                                .frame(maxWidth: .infinity)
+                                .aspectRatio(1, contentMode: .fit)
                                 .onHover { inside in hovered = inside ? d.date : (hovered == d.date ? nil : hovered) }
                         }
                     }
+                    .frame(maxWidth: .infinity)
                 }
             }
-            // Legend: $0 → $1000+ ramp.
+            .frame(maxWidth: .infinity)
+            // Legend: $0 → $1000+ ramp (spans full width).
             HStack(spacing: 4) {
                 Text("$0").font(.system(size: 9)).foregroundStyle(.secondary)
                 HStack(spacing: 2) {
                     ForEach(0..<10, id: \.self) { i in
                         RoundedRectangle(cornerRadius: 1)
                             .fill(Self.rampColor(Double(i) / 9.0))
-                            .frame(width: 10, height: 7)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 7)
                     }
                 }
                 Text("$1k+").font(.system(size: 9)).foregroundStyle(.secondary)

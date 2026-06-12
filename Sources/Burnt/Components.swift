@@ -114,11 +114,13 @@ struct Sparkline: View {
                 ForEach(points, id: \.date) { p in
                     RoundedRectangle(cornerRadius: 2)
                         .fill(hovered == p.date ? Color.orange : Color.accentColor)
-                        .frame(width: 14, height: max(4, CGFloat(p.cost / maxCost) * 40))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: max(4, CGFloat(p.cost / maxCost) * 40))
                         .opacity(p.cost == 0 ? 0.25 : 1)
                         .onHover { inside in hovered = inside ? p.date : (hovered == p.date ? nil : hovered) }
                 }
             }
+            .frame(maxWidth: .infinity)
             .frame(height: 44)
         }
     }
