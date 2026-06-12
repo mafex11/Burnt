@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --amber:#F2A03D; --amber-bright:#ffb454; --green:#3DB868;
+    --panel:#26262a; --text:#f5f5f7; --secondary:#9a9a9e; --hairline:rgba(255,255,255,0.10);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-font-smoothing:antialiased; }
+  html,body { width:1920px; height:1080px; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(900px 700px at 50% 44%, rgba(242,120,40,0.18), transparent 70%),
+      radial-gradient(1500px 1050px at 50% 60%, #1a1410 0%, #0e0d0f 60%, #07070a 100%);
+    font-family:-apple-system,"SF Pro Display","Helvetica Neue",Arial,sans-serif;
+    color:var(--text); position:relative;
+  }
+  /* glow that breathes behind everything */
+  #glow {
+    position:absolute; left:50%; top:46%; width:1100px; height:1100px;
+    transform:translate(-50%,-50%); border-radius:50%;
+    background:radial-gradient(circle, rgba(242,140,50,0.22), transparent 62%);
+    z-index:0; filter:blur(8px);
+  }
+
+  .embers { position:absolute; inset:0; pointer-events:none; z-index:1; }
+  .ember { position:absolute; bottom:-20px; border-radius:50%;
+    background:radial-gradient(circle, var(--amber-bright), rgba(242,160,61,0)); opacity:0; }
+
+  /* parallax camera wrapper */
+  #cam { position:absolute; inset:0; z-index:2; }
+  .stage { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; }
+
+  /* icon used across scenes */
+  .appicon { display:block; border-radius:24%; box-shadow:0 18px 50px rgba(214,66,15,0.4); }
+
+  /* ===== Scene 1 ===== */
+  #logo { position:absolute; text-align:center; opacity:0; }
+  #logo .icon { width:150px; height:150px; margin:0 auto;
+    border-radius:34px; filter:drop-shadow(0 0 34px rgba(242,160,61,0.6)); }
+  #logo .word { font-size:128px; font-weight:800; letter-spacing:-3px; margin-top:18px;
+    background:linear-gradient(180deg,#ffe6c2,var(--amber) 55%,#d6420f);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #logo .tag { font-size:30px; color:var(--secondary); margin-top:12px; font-weight:500; opacity:0; }
+
+  /* ===== Scene 2 ===== */
+  #dash { position:absolute; opacity:0; display:flex; align-items:center; gap:64px; }
+  .copy { width:540px; }
+  .copy h2 { font-size:56px; font-weight:750; line-height:1.06; letter-spacing:-1px; }
+  .copy h2 .hl { color:var(--amber); }
+  .copy p { font-size:24px; color:var(--secondary); margin-top:20px; line-height:1.5; }
+  .menubar-chip { display:inline-flex; align-items:center; gap:11px; margin-top:28px;
+    background:rgba(40,40,42,0.92); border:1px solid var(--hairline); border-radius:11px;
+    padding:10px 18px; font-size:24px; font-weight:600; box-shadow:0 6px 20px rgba(0,0,0,0.35); }
+  .menubar-chip img { width:26px; height:26px; border-radius:7px; }
+
+  .popover { width:440px; background:var(--panel); border:1px solid var(--hairline);
+    border-radius:20px; padding:26px; box-shadow:0 34px 90px rgba(0,0,0,0.6); }
+  .pv-top { display:flex; justify-content:space-between; align-items:flex-start; }
+  .hero { font-size:50px; font-weight:700; letter-spacing:-1px; font-variant-numeric:tabular-nums; }
+  .hero-sub { display:flex; gap:10px; align-items:center; margin-top:5px; }
+  .muted { color:var(--secondary); font-size:18px; }
+  .trend { color:#ff5a52; font-size:17px; }
+  .gear { color:var(--secondary); font-size:22px; }
+  .budget-track { height:10px; border-radius:5px; background:rgba(255,255,255,0.14); margin-top:18px; overflow:hidden; }
+  .budget-fill { height:100%; width:0%; border-radius:5px; background:var(--green); }
+  .budget-lbl { font-size:16px; color:var(--secondary); margin-top:6px; }
+  .hr { height:1px; background:var(--hairline); margin:18px 0; }
+  .stats { display:flex; gap:16px; }
+  .stat { flex:1; }
+  .stat .k { font-size:16px; color:var(--secondary); }
+  .stat .v { font-size:22px; font-weight:600; margin-top:2px; font-variant-numeric:tabular-nums; }
+  .spark-cap { font-size:16px; color:var(--secondary); margin:18px 0 8px; }
+  .spark { display:flex; align-items:flex-end; gap:5px; height:66px; }
+  .spark .b { width:21px; border-radius:3px; background:#5a8dd6; height:4px; }
+  .spark .b.hot { background:var(--amber); }
+  .sect { font-size:14px; font-weight:700; color:var(--secondary); letter-spacing:0.6px; margin:18px 0 10px; }
+  .brow { display:flex; align-items:center; gap:11px; margin:10px 0; font-size:18px; opacity:0; }
+  .dot { width:9px; height:9px; border-radius:50%; flex:none; }
+  .brow .nm { flex:none; }
+  .brow .pr { flex:1; height:5px; border-radius:3px; margin:0 4px; }
+  .brow .ct { width:74px; text-align:right; font-variant-numeric:tabular-nums; }
+
+  /* ===== Scene 3 (outro, resolved) ===== */
+  #cta { position:absolute; text-align:center; opacity:0; }
+  #cta .icon { width:104px; height:104px; margin:0 auto; border-radius:24px;
+    filter:drop-shadow(0 0 30px rgba(242,160,61,0.55)); }
+  #cta .word2 { font-size:72px; font-weight:800; letter-spacing:-2px; margin-top:16px;
+    background:linear-gradient(180deg,#ffe6c2,var(--amber) 60%,#d6420f);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #cta .cmd { margin-top:26px; display:inline-block;
+    font-family:"SF Mono",ui-monospace,Menlo,monospace; font-size:30px;
+    background:#1c1c1e; border:1px solid var(--hairline); border-radius:12px;
+    padding:18px 32px; color:#e8e8ea; box-shadow:0 10px 40px rgba(0,0,0,0.45); opacity:0; }
+  .cmd .prompt { color:var(--amber); }
+  #cta .sub { margin-top:22px; font-size:22px; color:var(--secondary); opacity:0; }
+</style>
+</head>
+<body>
+  <div id="glow"></div>
+  <div class="embers" id="embers"></div>
+
+  <div id="cam">
+   <div class="stage">
+    <!-- Scene 1 -->
+    <div id="logo">
+      <img class="appicon icon" src="appicon.png" alt="">
+      <div class="word">Burnt</div>
+      <div class="tag" id="logoTag">Track what you burn on AI.</div>
+    </div>
+
+    <!-- Scene 2 -->
+    <div id="dash">
+      <div class="copy">
+        <h2>Your <span class="hl">Claude&nbsp;Code</span> &amp; <span class="hl">Codex</span> spend — in the menu bar.</h2>
+        <p>Real dollars and tokens. Today, this week, this month. At a glance.</p>
+        <div class="menubar-chip"><img class="appicon" src="appicon.png" alt=""><span id="chipVal">$0.00</span></div>
+      </div>
+      <div class="popover">
+        <div class="pv-top">
+          <div>
+            <div class="hero" id="heroVal">$0.00</div>
+            <div class="hero-sub"><span class="muted">today</span><span class="trend">&#x2197; 12% vs last week</span></div>
+          </div>
+          <div class="gear">&#9881;</div>
+        </div>
+        <div class="budget-track"><div class="budget-fill" id="bfill"></div></div>
+        <div class="budget-lbl" id="blbl">0% of $10.00</div>
+        <div class="hr"></div>
+        <div class="stats">
+          <div class="stat"><div class="k">Week</div><div class="v" id="sWeek">$0</div></div>
+          <div class="stat"><div class="k">Month</div><div class="v" id="sMonth">$0</div></div>
+          <div class="stat"><div class="k">All-time</div><div class="v" id="sAll">$0</div></div>
+        </div>
+        <div class="spark-cap">last 14 days</div>
+        <div class="spark" id="spark"></div>
+        <div class="sect">BY TOOL</div>
+        <div class="brow" id="rowClaude">
+          <span class="dot" style="background:var(--amber)"></span><span class="nm">Claude</span>
+          <span class="pr" style="background:rgba(242,160,61,0.18)"><span style="display:block;height:100%;width:75%;border-radius:3px;background:var(--amber)"></span></span>
+          <span class="ct">$3.10</span>
+        </div>
+        <div class="brow" id="rowCodex">
+          <span class="dot" style="background:var(--green)"></span><span class="nm">Codex</span>
+          <span class="pr" style="background:rgba(61,184,104,0.18)"><span style="display:block;height:100%;width:28%;border-radius:3px;background:var(--green)"></span></span>
+          <span class="ct">$1.11</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 3 -->
+    <div id="cta">
+      <img class="appicon icon" src="appicon.png" alt="">
+      <div class="word2">Burnt</div>
+      <div class="cmd" id="ctaCmd"><span class="prompt">$</span> brew install --cask mafex11/tap/burnt</div>
+      <div class="sub" id="ctaSub">Free · open source · macOS</div>
+    </div>
+   </div>
+  </div>
+
+<script>
+const SPARK_HEIGHTS=[6,16,24,13,34,20,10,28,44,22,38,58,18,12];
+(function(){
+  const e=document.getElementById('embers');
+  for(let i=0;i<34;i++){
+    const d=document.createElement('div'); d.className='ember';
+    d.style.left=(Math.floor((i*89+11)%100))+'%';
+    d.dataset.delay=(i*330)%4600; d.dataset.dur=3400+(i*131)%2200;
+    d.dataset.drift=((i%2)?1:-1)*(24+(i*9)%70);
+    const sz=4+(i%4)*2; d.style.width=sz+'px'; d.style.height=sz+'px';
+    d.dataset.depth=0.5+(i%3)*0.35;   // parallax depth
+    e.appendChild(d);
+  }
+  const s=document.getElementById('spark');
+  SPARK_HEIGHTS.forEach((h,i)=>{const b=document.createElement('div'); b.className='b'+(i===11?' hot':''); b.dataset.full=h; s.appendChild(b);});
+})();
+
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+const easeOut=t=>1-Math.pow(1-t,3);
+const easeInOut=t=>t<0.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+const backOut=t=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(t-1,3)+c1*Math.pow(t-1,2);};
+const lerp=(a,b,t)=>a+(b-a)*t;
+const money=v=>'$'+v.toFixed(2);
+const money0=v=>'$'+Math.round(v).toLocaleString('en-US');
+
+const D=13000;
+
+function render(t){
+  t=clamp(t,0,D);
+
+  // -------- parallax camera: gentle continuous drift + scene pushes --------
+  // a slow sine drift makes the whole frame feel alive (never perfectly still)
+  const driftX=Math.sin(t/2600)*10, driftY=Math.cos(t/3100)*8;
+  document.getElementById('cam').style.transform=`translate(${driftX}px,${driftY}px)`;
+
+  // glow breathes + pulses on beats
+  const breathe=1+0.06*Math.sin(t/1400);
+  let glowPulse=0;
+  // pulse at logo land (0.9s) and outro (10.6s)
+  const p1=clamp(1-Math.abs(t-900)/500,0,1);
+  const p2=clamp(1-Math.abs(t-10600)/600,0,1);
+  glowPulse=Math.max(p1,p2)*0.5;
+  document.getElementById('glow').style.transform=`translate(-50%,-50%) scale(${(breathe+glowPulse).toFixed(3)})`;
+  document.getElementById('glow').style.opacity=(0.75+glowPulse).toFixed(3);
+
+  // -------- embers (continuous, parallax-reactive) --------
+  document.querySelectorAll('.ember').forEach(em=>{
+    const delay=+em.dataset.delay,dur=+em.dataset.dur,drift=+em.dataset.drift,depth=+em.dataset.depth;
+    let lt=((t-delay)%dur+dur)%dur; const started=t>=delay; const p=lt/dur;
+    if(!started){em.style.opacity=0;return;}
+    const y=-p*(1120); const op=p<0.12?p/0.12:(p>0.7?clamp(1-(p-0.7)/0.3,0,1):1);
+    em.style.transform=`translate(${drift*Math.sin(p*6.28)+driftX*depth}px, ${y+driftY*depth}px)`;
+    em.style.opacity=op*0.85;
+  });
+
+  // ============ SCENE 1: logo (0 → 3.2, overlaps into dash) ============
+  const logo=document.getElementById('logo');
+  const lin=clamp((t-150)/650,0,1);             // fast pop-in
+  const lout=clamp((t-2700)/650,0,1);            // pushes up & out, overlaps dash-in
+  const lvis=easeOut(lin)*(1-easeInOut(lout));
+  logo.style.opacity=lvis;
+  const lscale=lerp(0.7,1,backOut(lin))*lerp(1,1.12,easeInOut(lout));
+  const ly=lerp(40,0,easeOut(lin))+lerp(0,-90,easeInOut(lout));
+  // continuous breathing float while visible
+  const lfloat=Math.sin(t/900)*5*(1-lout);
+  logo.style.transform=`translateY(${ly+lfloat}px) scale(${lscale})`;
+  // icon spins slightly on entry for life
+  const iconRot=lerp(-12,0,backOut(lin));
+  logo.querySelector('.icon').style.transform=`rotate(${iconRot}deg)`;
+  document.getElementById('logoTag').style.opacity=clamp((t-700)/500,0,1)*(1-easeInOut(lout));
+
+  // ============ SCENE 2: dashboard (2.9 → 9.6) ============
+  const dash=document.getElementById('dash');
+  const din=clamp((t-2900)/700,0,1);             // slides in as logo leaves (crossfade+move)
+  const dout=clamp((t-9000)/650,0,1);
+  dash.style.opacity=easeOut(din)*(1-easeInOut(dout));
+  const dscale=lerp(0.92,1,easeOut(din))*lerp(1,1.06,easeInOut(dout));
+  const dy=lerp(70,0,easeOut(din))+lerp(0,-70,easeInOut(dout));
+  const dfloat=Math.sin(t/1100+1)*4*(1-dout)*(din>0.9?1:0);
+  dash.style.transform=`translateY(${dy+dfloat}px) scale(${dscale})`;
+  // copy + popover enter from opposite sides for motion
+  const copyX=lerp(-60,0,easeOut(clamp((t-3000)/700,0,1)));
+  const popX=lerp(70,0,easeOut(clamp((t-3150)/750,0,1)));
+  dash.querySelector('.copy').style.transform=`translateX(${copyX*(1-dout)}px)`;
+  dash.querySelector('.popover').style.transform=`translateX(${popX*(1-dout)}px)`;
+
+  // count-ups (3.7 → 5.0, snappy)
+  const cu=easeOut(clamp((t-3700)/1300,0,1));
+  document.getElementById('heroVal').textContent=money(lerp(0,4.21,cu));
+  document.getElementById('chipVal').textContent=money(lerp(0,4.21,cu));
+  document.getElementById('sWeek').textContent=money0(lerp(0,28.9,cu));
+  document.getElementById('sMonth').textContent=money0(lerp(0,112,cu));
+  document.getElementById('sAll').textContent=money0(lerp(0,7468,cu));
+  const bp=lerp(0,42,cu);
+  document.getElementById('bfill').style.width=bp+'%';
+  document.getElementById('blbl').textContent=Math.round(bp)+'% of $10.00';
+
+  // sparkline grow (4.0 → 5.3, tight stagger)
+  document.querySelectorAll('#spark .b').forEach((b,i)=>{
+    const g=easeOut(clamp((t-(4000+i*40))/360,0,1));
+    b.style.height=Math.max(4,(+b.dataset.full)*g)+'px';
+  });
+  // rows pop (5.1, 5.3)
+  const rc=easeOut(clamp((t-5100)/420,0,1)), rx=easeOut(clamp((t-5300)/420,0,1));
+  const rowC=document.getElementById('rowClaude'), rowX=document.getElementById('rowCodex');
+  rowC.style.opacity=rc; rowC.style.transform=`translateX(${lerp(-14,0,rc)}px)`;
+  rowX.style.opacity=rx; rowX.style.transform=`translateX(${lerp(-14,0,rx)}px)`;
+
+  // ============ SCENE 3: outro (9.4 → 13, resolved, no abrupt cut) ============
+  const cta=document.getElementById('cta');
+  const cin=clamp((t-9400)/700,0,1);
+  // icon+word land with a settle; command then sub fade in; then a calm hold; gentle end
+  cta.style.opacity=easeOut(cin);
+  const cscale=lerp(0.86,1,backOut(cin));
+  const cfloat=Math.sin(t/1000)*4;
+  cta.style.transform=`translateY(${lerp(46,0,easeOut(cin))+cfloat*(cin>0.9?1:0)}px) scale(${cscale})`;
+  cta.querySelector('.icon').style.transform=`rotate(${lerp(-10,0,backOut(cin))}deg)`;
+  document.getElementById('ctaCmd').style.opacity=easeOut(clamp((t-10100)/600,0,1));
+  document.getElementById('ctaSub').style.opacity=easeOut(clamp((t-10700)/600,0,1));
+  // final 1s: everything holds, glow settles — NOT a hard stop. (No fade-to-black so the
+  // last frame is the clean brand card.)
+}
+
+const params=new URLSearchParams(location.search);
+if(params.has('t')){ render(+params.get('t')); window.__ready=true; }
+else { const s=performance.now(); (function loop(n){render((n-s)%(D+1200));requestAnimationFrame(loop);})(performance.now()); }
+</script>
+</body>
+</html>
