@@ -77,3 +77,14 @@ public struct ModelBreakdown: Decodable, Sendable {
     public let cacheReadTokens: Int
     public let cost: Double
 }
+
+public struct SessionReport: Decodable, Sendable {
+    public let session: [SessionRow]
+}
+
+public struct SessionRow: Decodable, Sendable {
+    public let agent: String?
+    public let period: String        // the session UUID
+    public let totalCost: Double
+    public let totalTokens: Int
+}

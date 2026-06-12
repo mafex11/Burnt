@@ -1,0 +1,7 @@
+{
+ "session": [
+  { "agent": "claude", "period": "01467451-f660-4bd0-a16c-3298b534e6fd", "totalCost": 14.60, "totalTokens": 15917152 },
+  { "agent": "codex", "period": "019c0ec2-6c8f-7df2-943e-506d7d4c0c82", "totalCost": 21.67, "totalTokens": 45340860 }
+ ],
+ "totals": { "inputTokens": 0, "outputTokens": 0, "cacheCreationTokens": 0, "cacheReadTokens": 0, "totalTokens": 61258012, "totalCost": 36.27 }
+}

@@ -30,4 +30,12 @@ final class DecodingTests: XCTestCase {
         XCTAssertFalse(day.period.isEmpty, "the 'date' field must map into period")
         XCTAssertFalse(day.modelBreakdowns.isEmpty)
     }
+
+    func testDecodesSessionReport() throws {
+        let report = try JSONDecoder().decode(SessionReport.self, from: try fixture("session-sample"))
+        XCTAssertEqual(report.session.count, 2)
+        XCTAssertEqual(report.session[0].period, "01467451-f660-4bd0-a16c-3298b534e6fd")
+        XCTAssertEqual(report.session[0].totalCost, 14.60, accuracy: 0.001)
+        XCTAssertEqual(report.session[1].agent, "codex")
+    }
 }
