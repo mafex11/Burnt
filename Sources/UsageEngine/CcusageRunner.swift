@@ -24,9 +24,17 @@ public struct CcusageRunner: Sendable {
     /// cache lags real model prices, producing wildly wrong figures, so offline mode
     /// is not used.
     public func fetchDailyReport() throws -> CcusageReport {
+        try run(subcommand: "daily", as: CcusageReport.self)
+    }
+
+    public func fetchSessionReport() throws -> SessionReport {
+        try run(subcommand: "session", as: SessionReport.self)
+    }
+
+    private func run<T: Decodable>(subcommand: String, as type: T.Type) throws -> T {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: invocation.executable)
-        process.arguments = invocation.leadingArgs + ["daily", "--json"]
+        process.arguments = invocation.leadingArgs + [subcommand, "--json"]
 
         var env = ProcessInfo.processInfo.environment
         let extra = "/opt/homebrew/bin:/usr/local/bin"
@@ -63,7 +71,7 @@ public struct CcusageRunner: Sendable {
         }
 
         do {
-            return try JSONDecoder().decode(CcusageReport.self, from: outBox.data)
+            return try JSONDecoder().decode(T.self, from: outBox.data)
         } catch {
             throw RunError.decodeFailed(String(describing: error))
         }
