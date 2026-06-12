@@ -15,7 +15,8 @@ public enum Aggregator {
         return String(format: "%04d-%02d-%02d", c.year!, c.month!, c.day!)
     }
 
-    public static func summary(from report: CcusageReport, referenceDate: Date) -> Summary {
+    public static func summary(from report: CcusageReport, referenceDate: Date,
+                               byProject: [ProjectSlice] = []) -> Summary {
         let today = cal.startOfDay(for: referenceDate)
         let todayKey = key(today)
         // Rolling 7 days inclusive: today and the 6 prior days.
@@ -87,7 +88,7 @@ public enum Aggregator {
         return Summary(today: todayTotals, thisWeek: weekTotals, weekByDay: points,
             heatmapDays: heatPoints, byTool: byTool, byModel: byModel, cacheSavings: cacheSavings,
             monthToDate: month, allTime: all, avgPerDay: avg, lastWeek: last,
-            weekTrend: trend, projectedToday: projected, generatedAt: referenceDate)
+            weekTrend: trend, projectedToday: projected, byProject: byProject, generatedAt: referenceDate)
     }
 
     private static func totals(for d: DailyUsage) -> Totals {

@@ -53,5 +53,6 @@ public struct Summary: Sendable, Equatable {
     public let lastWeek: Totals          // 7 days before thisWeek (offsets -13..-7)
     public let weekTrend: Double?        // (thisWeek-lastWeek)/lastWeek; nil if lastWeek.cost == 0
     public let projectedToday: Double?   // today.cost / fractionOfDayElapsed; nil if too early
+    public let byProject: [ProjectSlice]   // by cwd, current data; empty if unavailable
     public let generatedAt: Date
 }

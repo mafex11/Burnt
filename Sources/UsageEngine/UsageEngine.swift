@@ -41,7 +41,8 @@ public final class UsageEngine: @unchecked Sendable {
                 return .noData
             }
 
-            let summary = Aggregator.summary(from: report, referenceDate: now())
+            let projects = (try? Self.buildProjects(runner: runner)) ?? []
+            let summary = Aggregator.summary(from: report, referenceDate: now(), byProject: projects)
             setCachedSummary(summary)
             return .success(summary)
         } catch {
@@ -60,5 +61,14 @@ public final class UsageEngine: @unchecked Sendable {
     private func setCachedSummary(_ summary: Summary) {
         lock.lock(); defer { lock.unlock() }
         lastGood = summary
+    }
+
+    private static func buildProjects(runner: CcusageRunner) throws -> [ProjectSlice] {
+        let sessions = try runner.fetchSessionReport().session
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        let cwdMap = ProjectAttributor.buildCwdMap(
+            claudeRoot: home.appendingPathComponent(".claude"),
+            codexRoot: home.appendingPathComponent(".codex"))
+        return ProjectAttributor.group(sessions: sessions, cwdBySession: cwdMap)
     }
 }

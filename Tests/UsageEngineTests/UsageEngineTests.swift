@@ -12,6 +12,8 @@ final class UsageEngineSmokeTests: XCTestCase {
         case .success(let s), .stale(let s, _):
             XCTAssertEqual(s.weekByDay.count, 14)
             XCTAssertGreaterThanOrEqual(s.thisWeek.cost, 0)
+            XCTAssertEqual(s.heatmapDays.count, 84)
+            _ = s.byProject   // present; may be empty
         case .noData:
             break // acceptable on a machine with no usage
         case .unavailable:
