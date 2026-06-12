@@ -13,6 +13,7 @@ struct SummaryView: View {
     private var heroValue: String { Formatters.cost(summary.today.cost) }
     private var maxToolCost: Double { max(summary.byTool.map(\.cost).max() ?? 0.01, 0.01) }
     private var maxModelCost: Double { max(summary.byModel.map(\.cost).max() ?? 0.01, 0.01) }
+    private var maxProjectCost: Double { max(summary.byProject.map(\.cost).max() ?? 0.01, 0.01) }
 
     private var style: DashboardStyle { settings.dashboardStyle }
 
@@ -64,6 +65,11 @@ struct SummaryView: View {
             // Sparkline — shown at every level.
             Sparkline(points: summary.weekByDay)
 
+            if style >= .detailed {
+                sectionHeader("Last 12 weeks")
+                HeatmapView(days: summary.heatmapDays)
+            }
+
             // By tool — Standard and up.
             if style >= .standard {
                 sectionHeader("By tool")
@@ -84,6 +90,14 @@ struct SummaryView: View {
                 if summary.cacheSavings > 0.01 {
                     Text("≈ \(Formatters.cost(summary.cacheSavings)) saved via cache")
                         .font(.caption).foregroundStyle(.green)
+                }
+            }
+
+            if style >= .detailed, !summary.byProject.isEmpty {
+                sectionHeader("By project")
+                ForEach(summary.byProject.prefix(5), id: \.path) { p in
+                    BreakdownBar(color: .secondary, label: p.name,
+                                 fraction: p.cost / maxProjectCost, cost: p.cost, tokens: p.totalTokens)
                 }
             }
 

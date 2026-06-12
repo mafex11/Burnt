@@ -9,12 +9,16 @@ struct MenuBarRootView: View {
     var body: some View {
         Group {
             if showingSettings {
-                SettingsView(settings: model.settings) { showingSettings = false }
+                SettingsView(settings: model.settings, onBack: { showingSettings = false },
+                             onShowWrapped: { model.showingWrapped = true })
             } else {
                 content
             }
         }
         .frame(width: 300)
+        .sheet(isPresented: $model.showingWrapped) {
+            WrappedSheet(model: model) { model.showingWrapped = false }
+        }
         .onAppear {
             // LSUIElement apps don't auto-activate; bring the popover to front so it's
             // key and hover events don't bleed to windows beneath.

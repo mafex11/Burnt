@@ -53,3 +53,48 @@ struct WrappedView: View {
         }
     }
 }
+
+struct WrappedSheet: View {
+    @ObservedObject var model: AppModel
+    let onClose: () -> Void
+    @State private var allTime = false
+
+    private var data: WrappedData? { model.wrappedData(allTime: allTime) }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Picker("", selection: $allTime) {
+                Text("This Month").tag(false)
+                Text("All-Time").tag(true)
+            }.pickerStyle(.segmented).frame(width: 240)
+
+            if let data {
+                WrappedView(data: data)
+                HStack {
+                    Button("Copy Image") { export(data, toClipboard: true) }
+                    Button("Save PNG…") { export(data, toClipboard: false) }
+                    Spacer()
+                    Button("Close", action: onClose)
+                }.padding(.horizontal)
+            } else {
+                Text("No data yet").foregroundStyle(.secondary)
+                Button("Close", action: onClose)
+            }
+        }.padding()
+    }
+
+    @MainActor private func render(_ data: WrappedData) -> NSImage? {
+        let r = ImageRenderer(content: WrappedView(data: data)); r.scale = 2; return r.nsImage
+    }
+    @MainActor private func export(_ data: WrappedData, toClipboard: Bool) {
+        guard let img = render(data), let tiff = img.tiffRepresentation,
+              let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
+        if toClipboard {
+            NSPasteboard.general.clearContents(); NSPasteboard.general.setData(png, forType: .png)
+        } else {
+            let panel = NSSavePanel(); panel.nameFieldStringValue = "burnt-wrapped.png"
+            panel.allowedContentTypes = [.png]
+            if panel.runModal() == .OK, let url = panel.url { try? png.write(to: url) }
+        }
+    }
+}

@@ -4,6 +4,7 @@ import BurntCore
 struct SettingsView: View {
     @ObservedObject var settings: BurntCore.Settings
     let onBack: () -> Void
+    var onShowWrapped: () -> Void = {}
 
     // Local text for the budget field; 0 shows as empty.
     @State private var budgetText: String = ""
@@ -41,6 +42,15 @@ struct SettingsView: View {
             }
 
             Toggle("Launch at login", isOn: $settings.launchAtLogin)
+
+            Divider()
+            Text("Notifications").font(.caption).foregroundStyle(.secondary)
+            Toggle("Budget alerts", isOn: $settings.notifyBudget)
+            Toggle("Daily summary", isOn: $settings.notifyDailySummary)
+            Toggle("Spend milestones", isOn: $settings.notifyMilestones)
+
+            Divider()
+            Button("Burnt Wrapped…", action: onShowWrapped).buttonStyle(.borderless)
 
             Divider()
 
