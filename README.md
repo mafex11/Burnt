@@ -20,7 +20,9 @@ brew install --cask mafex11/tap/burnt
 
 <div align="center">
 
-![Burnt — menu bar and dashboard](docs/images/hero.png)
+![Burnt — launch demo](docs/video/burnt-launch.gif)
+
+**[▶ Watch in HD (1080p)](https://github.com/mafex11/Burnt/releases/download/v1.1.1/burnt-launch.mp4)**
 
 </div>
 
