@@ -11,7 +11,7 @@ cask "burnt" do
   homepage "https://github.com/mafex11/Burnt"
 
   # No node dependency — ccusage is bundled inside the app.
-  depends_on macos: ">= :sonoma"
+  depends_on macos: :sonoma
 
   app "Burnt.app"
 

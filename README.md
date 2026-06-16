@@ -11,7 +11,7 @@ Real-dollar cost and token usage, today / this week / this month, at a glance.
 [![License](https://img.shields.io/github/license/mafex11/Burnt?color=blue)](LICENSE)
 
 ```bash
-brew install --cask mafex11/tap/burnt
+brew install mafex11/tap/burnt
 ```
 
 </div>
@@ -22,7 +22,7 @@ brew install --cask mafex11/tap/burnt
 
 ![Burnt — launch demo](docs/video/burnt-launch.gif)
 
-**[▶ Watch in HD (1080p)](https://github.com/mafex11/Burnt/releases/download/v1.1.1/burnt-launch.mp4)**
+**[▶ Watch in HD (1080p)](https://github.com/mafex11/Burnt/releases/download/v1.2.0/burnt-launch.mp4)**
 
 </div>
 
@@ -38,7 +38,7 @@ brew install --cask mafex11/tap/burnt
 ### Homebrew (recommended)
 
 ```bash
-brew install --cask mafex11/tap/burnt
+brew install mafex11/tap/burnt
 ```
 
 That's it — no Homebrew tap step needed (the full path taps automatically). To update later:
@@ -113,10 +113,12 @@ Click the menu bar icon for a breakdown:
 
 - **Today / week / month / all-time** — cost in USD and token volume
 - **Trend & pace** — how this week compares to last, and where today is heading
+- **14-day sparkline** + a **12-week spend heatmap** — hover any day for its cost
 - **By tool** — Claude vs Codex, color-coded
 - **By model** — where the expensive tokens go (opus, sonnet, gpt-5, …)
+- **By project** — which repo/directory is eating your budget
 - **Cache savings** — an estimate of how much prompt caching saved you
-- **14-day sparkline** — hover any bar for that day's date + cost
+- **Burnt Wrapped** — a shareable card of your month / all-time spend (copy or save as PNG)
 
 ## Settings (⚙)
 
