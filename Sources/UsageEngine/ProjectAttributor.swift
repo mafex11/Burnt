@@ -34,7 +34,16 @@ public enum ProjectAttributor {
         }.sorted { $0.cost > $1.cost }
     }
 
+    /// A session log's cwd never changes after the first line is written, so once we've
+    /// read a file we cache (cwd, mtime) and re-read it only if its mtime moves. This
+    /// turns the second and later builds from "open 2,400 files" into "stat 2,400 files,
+    /// open the handful that changed" — the expensive line-parsing is paid once per file.
+    private struct CachedCwd { let sid: String; let cwd: String; let mtime: Date }
+    private static let cacheLock = NSLock()
+    private nonisolated(unsafe) static var cwdCache: [String: CachedCwd] = [:]   // keyed by file path
+
     /// Build sessionID→cwd by reading the FIRST cwd-bearing line of each session log.
+    /// Subsequent builds reuse cached values for files whose mtime is unchanged.
     public static func buildCwdMap(claudeRoot: URL, codexRoot: URL) -> [String: String] {
         var map: [String: String] = [:]
         let fm = FileManager.default
@@ -42,21 +51,46 @@ public enum ProjectAttributor {
         if let proj = try? fm.contentsOfDirectory(at: claudeRoot.appendingPathComponent("projects"),
                                                   includingPropertiesForKeys: nil) {
             for dir in proj {
-                guard let files = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: nil) else { continue }
+                guard let files = try? fm.contentsOfDirectory(
+                    at: dir, includingPropertiesForKeys: [.contentModificationDateKey]) else { continue }
                 for f in files where f.pathExtension == "jsonl" {
+                    if let hit = cached(f, fm) { map[hit.sid] = hit.cwd; continue }
                     let sid = f.deletingPathExtension().lastPathComponent
-                    if let cwd = firstCwd(in: f) { map[sid] = cwd }
+                    if let cwd = firstCwd(in: f) {
+                        map[sid] = cwd
+                        store(f, sid: sid, cwd: cwd, fm: fm)
+                    }
                 }
             }
         }
 
         if let en = fm.enumerator(at: codexRoot.appendingPathComponent("sessions"),
-                                  includingPropertiesForKeys: nil) {
+                                  includingPropertiesForKeys: [.contentModificationDateKey]) {
             for case let f as URL in en where f.lastPathComponent.hasPrefix("rollout-") && f.pathExtension == "jsonl" {
-                if let (id, cwd) = codexIdAndCwd(in: f) { map[id] = cwd }
+                if let hit = cached(f, fm) { map[hit.sid] = hit.cwd; continue }
+                if let (id, cwd) = codexIdAndCwd(in: f) {
+                    map[id] = cwd
+                    store(f, sid: id, cwd: cwd, fm: fm)
+                }
             }
         }
         return map
+    }
+
+    /// Returns the cached entry for `url` iff its mtime matches what we last saw.
+    private static func cached(_ url: URL, _ fm: FileManager) -> CachedCwd? {
+        guard let mtime = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        else { return nil }
+        cacheLock.lock(); defer { cacheLock.unlock() }
+        guard let e = cwdCache[url.path], e.mtime == mtime else { return nil }
+        return e
+    }
+
+    private static func store(_ url: URL, sid: String, cwd: String, fm: FileManager) {
+        guard let mtime = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate
+        else { return }
+        cacheLock.lock(); defer { cacheLock.unlock() }
+        cwdCache[url.path] = CachedCwd(sid: sid, cwd: cwd, mtime: mtime)
     }
 
     /// First "cwd" value found in a Claude jsonl. Claude puts cwd on a message line

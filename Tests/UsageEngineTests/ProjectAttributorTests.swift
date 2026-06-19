@@ -54,4 +54,38 @@ final class ProjectAttributorTests: XCTestCase {
         XCTAssertEqual(map[sid], "/Users/me/code/myproj")
         try? fm.removeItem(at: tmp)
     }
+
+    /// A session log's cwd is immutable once written, so once we've parsed a file
+    /// the result is cached by (path, mtime). Proof: read once, blank the file's
+    /// CONTENTS while preserving its mtime, read again — the cached cwd survives,
+    /// showing we didn't re-parse. (If we re-read, the blanked file would yield nil.)
+    func testBuildCwdMapCachesUnchangedFileByMtime() throws {
+        let fm = FileManager.default
+        let tmp = fm.temporaryDirectory.appendingPathComponent("burnt-cache-\(UUID().uuidString)")
+        let projDir = tmp.appendingPathComponent(".claude/projects/d")
+        try fm.createDirectory(at: projDir, withIntermediateDirectories: true)
+        let codexRoot = tmp.appendingPathComponent(".codex")
+        try fm.createDirectory(at: codexRoot.appendingPathComponent("sessions"), withIntermediateDirectories: true)
+
+        let sid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"
+        let file = projDir.appendingPathComponent("\(sid).jsonl")
+        try "{\"cwd\":\"/Users/me/code/cached\"}\n".write(to: file, atomically: true, encoding: .utf8)
+        // Pin a whole-second mtime so it round-trips exactly (sub-second precision is
+        // lost on disk and would otherwise make the cached mtime compare unequal).
+        let mtime = Date(timeIntervalSince1970: 1_700_000_000)
+        try fm.setAttributes([.modificationDate: mtime], ofItemAtPath: file.path)
+
+        let claudeRoot = tmp.appendingPathComponent(".claude")
+        let first = ProjectAttributor.buildCwdMap(claudeRoot: claudeRoot, codexRoot: codexRoot)
+        XCTAssertEqual(first[sid], "/Users/me/code/cached")
+
+        // Blank the contents but restore the same mtime → looks "unchanged".
+        try "{}\n".write(to: file, atomically: true, encoding: .utf8)
+        try fm.setAttributes([.modificationDate: mtime], ofItemAtPath: file.path)
+
+        let second = ProjectAttributor.buildCwdMap(claudeRoot: claudeRoot, codexRoot: codexRoot)
+        XCTAssertEqual(second[sid], "/Users/me/code/cached",
+                       "unchanged mtime should serve the cached cwd without re-parsing")
+        try? fm.removeItem(at: tmp)
+    }
 }

@@ -22,7 +22,13 @@ public final class UsageEngine: @unchecked Sendable {
     }
 
     /// Loads usage with live pricing. Synchronous — callers run it off the main thread.
-    public func loadSummary() -> EngineResult {
+    ///
+    /// `includeProjects` controls the expensive per-project attribution: it runs a
+    /// second `ccusage session` subprocess AND walks every Claude/Codex session log on
+    /// disk. That data only feeds the Detailed-mode "By project" list, so the menu bar
+    /// poll passes `false` and only pays for it when the popover is open in Detailed.
+    /// When skipped, the previous build's projects are reused so the list doesn't flicker.
+    public func loadSummary(includeProjects: Bool = true) -> EngineResult {
         guard case let .ready(invocation) = locator.resolve() else {
             return .unavailable
         }
@@ -41,7 +47,14 @@ public final class UsageEngine: @unchecked Sendable {
                 return .noData
             }
 
-            let projects = (try? Self.buildProjects(runner: runner)) ?? []
+            // Only pay for project attribution when asked (Detailed popover). Otherwise
+            // reuse the last build's projects so the list stays populated between fetches.
+            let projects: [ProjectSlice]
+            if includeProjects {
+                projects = (try? Self.buildProjects(runner: runner)) ?? lastProjects()
+            } else {
+                projects = lastProjects()
+            }
             let summary = Aggregator.summary(from: report, referenceDate: now(), byProject: projects)
             setCachedSummary(summary)
             return .success(summary)
@@ -61,6 +74,13 @@ public final class UsageEngine: @unchecked Sendable {
     private func setCachedSummary(_ summary: Summary) {
         lock.lock(); defer { lock.unlock() }
         lastGood = summary
+    }
+
+    /// The previous build's projects, so a light (no-project) refresh keeps the
+    /// "By project" list populated rather than briefly emptying it.
+    private func lastProjects() -> [ProjectSlice] {
+        lock.lock(); defer { lock.unlock() }
+        return lastGood?.byProject ?? []
     }
 
     private static func buildProjects(runner: CcusageRunner) throws -> [ProjectSlice] {

@@ -21,15 +21,34 @@ final class AppModel: ObservableObject {
         self.settings = settings
     }
 
-    /// Refresh now (live pricing), used on popover open and the manual button.
-    func refresh() { load() }
+    /// True while the popover is on screen. The background poll uses this to decide
+    /// whether the heavy per-project attribution is worth computing.
+    private var popoverOpen = false
+
+    /// Full refresh including per-project attribution — used on popover open and the
+    /// manual Refresh button, where the Detailed "By project" list may be visible.
+    func refresh() { load(includeProjects: true) }
+
+    /// Called when the popover appears/disappears so the poll can stay light while it's
+    /// closed. Opening triggers an immediate full refresh so projects are current.
+    func setPopoverOpen(_ open: Bool) {
+        popoverOpen = open
+        if open { refresh() }
+    }
 
     /// Refresh immediately, then poll every 60s so the menu bar number stays live.
+    /// The poll is LIGHT (no project attribution) unless the popover is open in
+    /// Detailed mode — that's the only place project data is shown, and it spares a
+    /// second subprocess plus a walk of every session log on every tick.
     func startAutoRefresh() {
         refresh()
         pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor in
+                guard let self else { return }
+                let needProjects = self.popoverOpen && self.settings.dashboardStyle == .detailed
+                self.load(includeProjects: needProjects)
+            }
         }
         startFlameAnimation()
     }
@@ -47,10 +66,10 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func load() {
+    private func load(includeProjects: Bool) {
         isLoading = true
         Task.detached { [engine] in
-            let r = engine.loadSummary()
+            let r = engine.loadSummary(includeProjects: includeProjects)
             await MainActor.run {
                 self.result = r
                 self.isLoading = false
