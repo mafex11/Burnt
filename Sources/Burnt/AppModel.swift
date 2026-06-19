@@ -8,10 +8,12 @@ final class AppModel: ObservableObject {
     @Published var result: EngineResult = .noData
     @Published var isLoading = false
     @Published var showingWrapped = false
+    @Published var flameFrame = 0          // current pixel-flame animation frame
 
     let settings: BurntCore.Settings
     private let engine = UsageEngine()
     private var pollTimer: Timer?
+    private var flameTimer: Timer?
     private let notifier = NotificationService()
     private var notifierState = NotifierState()
 
@@ -28,6 +30,20 @@ final class AppModel: ObservableObject {
         pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
+        }
+        startFlameAnimation()
+    }
+
+    /// Cycle the pixel flame at ~6fps while enabled. Cheap; advances a published
+    /// frame index the menu bar label observes. Off → hold a single frame.
+    func startFlameAnimation() {
+        flameTimer?.invalidate()
+        guard settings.animateFlame else { flameFrame = 0; return }
+        flameTimer = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                guard let self else { return }
+                self.flameFrame = (self.flameFrame + 1) % PixelFlame.frameCount
+            }
         }
     }
 

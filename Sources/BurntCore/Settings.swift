@@ -51,6 +51,7 @@ public final class Settings: ObservableObject {
         static let notifyBudget = "notifyBudget"
         static let notifyDailySummary = "notifyDailySummary"
         static let notifyMilestones = "notifyMilestones"
+        static let animateFlame = "animateFlame"
     }
 
     public init(defaults: UserDefaults = .standard, loginItem: LoginItemControlling = LaunchAtLogin()) {
@@ -66,6 +67,9 @@ public final class Settings: ObservableObject {
         self._notifyBudget = Published(initialValue: defaults.bool(forKey: Key.notifyBudget))
         self._notifyDailySummary = Published(initialValue: defaults.bool(forKey: Key.notifyDailySummary))
         self._notifyMilestones = Published(initialValue: defaults.bool(forKey: Key.notifyMilestones))
+        // Animate the menu-bar flame; default ON when unset.
+        let animate = defaults.object(forKey: Key.animateFlame) == nil ? true : defaults.bool(forKey: Key.animateFlame)
+        self._animateFlame = Published(initialValue: animate)
     }
 
     @Published public var menuBarMode: MenuBarMode {
@@ -86,6 +90,10 @@ public final class Settings: ObservableObject {
 
     @Published public var notifyDailySummary: Bool {
         didSet { defaults.set(notifyDailySummary, forKey: Key.notifyDailySummary) }
+    }
+
+    @Published public var animateFlame: Bool {
+        didSet { defaults.set(animateFlame, forKey: Key.animateFlame) }
     }
 
     @Published public var notifyMilestones: Bool {

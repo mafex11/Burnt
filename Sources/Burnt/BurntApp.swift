@@ -1,16 +1,22 @@
 import SwiftUI
+import BurntCore
 
-/// The menu bar label. With text, inline the flame into a Text so both render
-/// (a plain Label collapses to icon-only in the menu bar). Empty text → just the
-/// SF Symbol as a proper white template image (an empty Text-with-image renders
-/// as an ugly dark blob, so we use Image directly for icon-only mode).
+/// The menu bar label: an animated pixel-art flame + the value text.
+/// The flame frame is driven by `frame`; the same `Image(nsImage:)` updates live
+/// when the observed frame index changes.
 struct MenuBarLabel: View {
     let text: String
+    let frame: Int
+
     var body: some View {
+        let flame = Image(nsImage: PixelFlame.image(frame: frame))
         if text.isEmpty {
-            Image(systemName: "flame.fill")
+            flame
         } else {
-            Text("\(Image(systemName: "flame.fill"))  \(text)")
+            HStack(spacing: 4) {
+                flame
+                Text(text)
+            }
         }
     }
 }
@@ -23,7 +29,7 @@ struct BurntApp: App {
         MenuBarExtra {
             MenuBarRootView(model: model)
         } label: {
-            MenuBarLabel(text: model.menuBarText)
+            MenuBarLabel(text: model.menuBarText, frame: model.flameFrame)
                 .onAppear { model.startAutoRefresh() }
         }
         .menuBarExtraStyle(.window)

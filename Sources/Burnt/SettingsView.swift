@@ -24,6 +24,8 @@ struct SettingsView: View {
                 }
             }
 
+            Toggle("Animate flame", isOn: $settings.animateFlame)
+
             Picker("Dashboard style", selection: $settings.dashboardStyle) {
                 ForEach(DashboardStyle.allCases, id: \.self) { style in
                     Text(style.label).tag(style)

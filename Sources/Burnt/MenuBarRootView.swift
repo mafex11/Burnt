@@ -25,6 +25,9 @@ struct MenuBarRootView: View {
             NSApp.activate(ignoringOtherApps: true)
             model.refresh()
         }
+        .onChange(of: model.settings.animateFlame) { _, _ in
+            model.startFlameAnimation()   // start/stop the flame when the toggle flips
+        }
     }
 
     @ViewBuilder
