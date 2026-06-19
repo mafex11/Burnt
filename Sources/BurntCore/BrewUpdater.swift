@@ -28,13 +28,20 @@ public struct BrewUpdater: Sendable {
         brewCandidates.first { FileManager.default.isExecutableFile(atPath: $0) }
     }
 
-    /// Launch `brew update && brew upgrade --cask burnt` detached. No-op if brew is
+    /// Run `brew update` then `brew upgrade --cask burnt` directly (no shell, so the
+    /// brew path is never string-interpolated into a command line). No-op if brew is
     /// absent. brew's cask postflight handles quarantine-strip + relaunch.
     public func upgrade() {
         guard let brew = brewPath() else { return }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/sh")
-        p.arguments = ["-c", "\(brew) update && \(brew) upgrade --cask burnt"]
-        try? p.run()
+        let update = Process()
+        update.executableURL = URL(fileURLWithPath: brew)
+        update.arguments = ["update"]
+        try? update.run()
+        update.waitUntilExit()
+
+        let upgrade = Process()
+        upgrade.executableURL = URL(fileURLWithPath: brew)
+        upgrade.arguments = ["upgrade", "--cask", "burnt"]
+        try? upgrade.run()
     }
 }
