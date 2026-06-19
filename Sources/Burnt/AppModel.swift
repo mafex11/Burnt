@@ -17,6 +17,18 @@ final class AppModel: ObservableObject {
     private let notifier = NotificationService()
     private var notifierState = NotifierState()
 
+    @Published var updateState: UpdateUIState = .idle
+    private let brew = BrewUpdater()
+    private var updateTimer: Timer?
+    private let lastCheckKey = "lastUpdateCheck"
+
+    enum UpdateUIState: Equatable { case idle, checking, upToDate, available(String), updating }
+
+    /// App version from the bundle (e.g. "1.2.1"); "0" if unreadable.
+    private var currentVersion: String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "0"
+    }
+
     init(settings: BurntCore.Settings = BurntCore.Settings()) {
         self.settings = settings
     }
@@ -51,6 +63,7 @@ final class AppModel: ObservableObject {
             }
         }
         startFlameAnimation()
+        startUpdateChecks()
     }
 
     /// Cycle the pixel flame at ~6fps while enabled. Cheap; advances a published
@@ -63,6 +76,54 @@ final class AppModel: ObservableObject {
                 guard let self else { return }
                 self.flameFrame = (self.flameFrame + 1) % PixelFlame.frameCount
             }
+        }
+    }
+
+    /// Shared by the daily timer and the Settings button. Fetches the tap's latest
+    /// version off-main, compares, and (when auto-update is on and the app is
+    /// brew-managed) applies via brew. Best-effort: any failure degrades to idle.
+    func checkForUpdates(userInitiated: Bool) {
+        if userInitiated { updateState = .checking }
+        let current = currentVersion
+        let autoOn = settings.autoUpdate
+        let brew = self.brew
+        Task.detached {
+            let status: UpdateStatus
+            do {
+                let latest = try UpdateChecker.latestVersion()
+                status = UpdateChecker.compare(current: current, latest: latest)
+            } catch {
+                await MainActor.run { if userInitiated { self.updateState = .idle } }
+                return
+            }
+            await MainActor.run {
+                UserDefaults.standard.set(Date(), forKey: self.lastCheckKey)
+                switch status {
+                case .upToDate:
+                    self.updateState = .upToDate
+                case .updateAvailable(let v):
+                    if autoOn && brew.isBrewManaged() {
+                        self.updateState = .updating
+                        brew.upgrade()
+                    } else {
+                        self.updateState = .available(v)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Check on launch if a day has passed (or never checked), then schedule a daily
+    /// wall-clock check. Stored last-check date means a Mac that slept overnight still
+    /// checks promptly after wake rather than drifting on pure uptime.
+    func startUpdateChecks() {
+        let last = UserDefaults.standard.object(forKey: lastCheckKey) as? Date
+        if last == nil || Date().timeIntervalSince(last!) >= 86_400 {
+            checkForUpdates(userInitiated: false)
+        }
+        updateTimer?.invalidate()
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 86_400, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkForUpdates(userInitiated: false) }
         }
     }
 
