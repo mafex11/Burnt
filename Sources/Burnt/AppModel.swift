@@ -96,20 +96,23 @@ final class AppModel: ObservableObject {
                 await MainActor.run { if userInitiated { self.updateState = .idle } }
                 return
             }
-            await MainActor.run {
+            let shouldUpgrade = await MainActor.run { () -> Bool in
                 UserDefaults.standard.set(Date(), forKey: self.lastCheckKey)
                 switch status {
                 case .upToDate:
                     self.updateState = .upToDate
+                    return false
                 case .updateAvailable(let v):
                     if autoOn && brew.isBrewManaged() {
                         self.updateState = .updating
-                        brew.upgrade()
+                        return true
                     } else {
                         self.updateState = .available(v)
+                        return false
                     }
                 }
             }
+            if shouldUpgrade { brew.upgrade() }
         }
     }
 
