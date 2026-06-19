@@ -60,4 +60,17 @@ final class SettingsTests: XCTestCase {
         XCTAssertTrue(s2.notifyMilestones)
         XCTAssertFalse(s2.notifyDailySummary)
     }
+
+    func testAutoUpdateDefaultsOnWhenUnset() {
+        let s = Settings(defaults: freshDefaults(), loginItem: StubLoginItem())
+        XCTAssertTrue(s.autoUpdate)
+    }
+
+    func testAutoUpdatePersists() {
+        let d = freshDefaults()
+        let s1 = Settings(defaults: d, loginItem: StubLoginItem())
+        s1.autoUpdate = false
+        let s2 = Settings(defaults: d, loginItem: StubLoginItem())
+        XCTAssertFalse(s2.autoUpdate)
+    }
 }
