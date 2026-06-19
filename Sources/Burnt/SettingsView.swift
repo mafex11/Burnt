@@ -3,11 +3,22 @@ import BurntCore
 
 struct SettingsView: View {
     @ObservedObject var settings: BurntCore.Settings
+    @ObservedObject var model: AppModel
     let onBack: () -> Void
     var onShowWrapped: () -> Void = {}
 
     // Local text for the budget field; 0 shows as empty.
     @State private var budgetText: String = ""
+
+    private var updateStatusText: String {
+        switch model.updateState {
+        case .idle:             return ""
+        case .checking:         return "Checking…"
+        case .upToDate:         return "You're up to date"
+        case .available(let v): return "Update available — v\(v)"
+        case .updating:         return "Updating…"
+        }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -50,6 +61,16 @@ struct SettingsView: View {
             Toggle("Budget alerts", isOn: $settings.notifyBudget)
             Toggle("Daily summary", isOn: $settings.notifyDailySummary)
             Toggle("Spend milestones", isOn: $settings.notifyMilestones)
+
+            Divider()
+            Text("Updates").font(.caption).foregroundStyle(.secondary)
+            Toggle("Automatically update Burnt", isOn: $settings.autoUpdate)
+            HStack {
+                Button("Check for Updates") { model.checkForUpdates(userInitiated: true) }
+                    .buttonStyle(.borderless)
+                Spacer()
+                Text(updateStatusText).font(.caption).foregroundStyle(.secondary)
+            }
 
             Divider()
             Button("Burnt Wrapped…", action: onShowWrapped).buttonStyle(.borderless)

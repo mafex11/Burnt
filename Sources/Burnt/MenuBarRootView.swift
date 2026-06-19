@@ -9,7 +9,8 @@ struct MenuBarRootView: View {
     var body: some View {
         Group {
             if showingSettings {
-                SettingsView(settings: model.settings, onBack: { showingSettings = false },
+                SettingsView(settings: model.settings, model: model,
+                             onBack: { showingSettings = false },
                              onShowWrapped: { model.showingWrapped = true })
             } else {
                 content
