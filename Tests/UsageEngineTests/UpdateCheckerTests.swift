@@ -23,4 +23,26 @@ final class UpdateCheckerTests: XCTestCase {
         XCTAssertEqual(UpdateChecker.compare(current: "1.2", latest: "1.2.0"), .upToDate)
         XCTAssertEqual(UpdateChecker.compare(current: "1.2", latest: "1.2.1"), .updateAvailable("1.2.1"))
     }
+    func testParsesVersionFromCaskText() {
+        let cask = """
+        cask "burnt" do
+          version "1.2.2"
+          sha256 "abc123"
+        end
+        """
+        XCTAssertEqual(UpdateChecker.parseVersion(fromCask: cask), "1.2.2")
+    }
+    func testParseReturnsNilWhenNoVersion() {
+        XCTAssertNil(UpdateChecker.parseVersion(fromCask: "cask \"burnt\" do\nend"))
+    }
+    func testLatestVersionUsesInjectedFetch() throws {
+        let cask = "cask \"burnt\" do\n  version \"3.4.5\"\nend"
+        let v = try UpdateChecker.latestVersion { _ in Data(cask.utf8) }
+        XCTAssertEqual(v, "3.4.5")
+    }
+    func testLatestVersionThrowsOnUnparseable() {
+        XCTAssertThrowsError(try UpdateChecker.latestVersion { _ in Data("garbage".utf8) }) { err in
+            XCTAssertEqual(err as? UpdateChecker.UpdateError, .unparseable)
+        }
+    }
 }
