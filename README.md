@@ -16,6 +16,8 @@ brew install mafex11/tap/burnt
 
 </div>
 
+> **Website:** the marketing site lives in [`site/`](site/) — `cd site && npm install && npm run dev`.
+
 ---
 
 <div align="center">
