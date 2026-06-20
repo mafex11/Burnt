@@ -20,8 +20,32 @@ public enum PixelFlame {
         (1.10, 0.96,  0.6,  3),
     ]
 
+    /// The 6 frames are fully deterministic, so render each one exactly once and
+    /// hand back the cached `NSImage` on every subsequent tick. Without this the
+    /// menu bar re-rasterizes an SF Symbol ~6×/second for the life of the process.
+    /// Keyed by `pointHeight` so a non-default size still gets its own cached set.
+    private static let cacheLock = NSLock()
+    private nonisolated(unsafe) static var cache: [CGFloat: [NSImage]] = [:]
+
     /// Render the flame symbol for `index`, at `pointHeight` (menu bar ≈ 18pt).
     public static func image(frame index: Int, pointHeight: CGFloat = 18) -> NSImage {
+        let i = index % flicker.count
+        cacheLock.lock()
+        if let frames = cache[pointHeight] {
+            cacheLock.unlock()
+            return frames[i]
+        }
+        cacheLock.unlock()
+
+        let frames = (0..<flicker.count).map { render(frame: $0, pointHeight: pointHeight) }
+        cacheLock.lock()
+        cache[pointHeight] = frames
+        cacheLock.unlock()
+        return frames[i]
+    }
+
+    /// Rasterize a single frame. Called once per (frame, pointHeight); result cached.
+    private static func render(frame index: Int, pointHeight: CGFloat) -> NSImage {
         let f = flicker[index % flicker.count]
         let h = pointHeight
         // Wider canvas so sway + rotation don't clip the flame.

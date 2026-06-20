@@ -9,7 +9,8 @@ struct MenuBarRootView: View {
     var body: some View {
         Group {
             if showingSettings {
-                SettingsView(settings: model.settings, onBack: { showingSettings = false },
+                SettingsView(settings: model.settings, model: model,
+                             onBack: { showingSettings = false },
                              onShowWrapped: { model.showingWrapped = true })
             } else {
                 content
@@ -23,8 +24,9 @@ struct MenuBarRootView: View {
             // LSUIElement apps don't auto-activate; bring the popover to front so it's
             // key and hover events don't bleed to windows beneath.
             NSApp.activate(ignoringOtherApps: true)
-            model.refresh()
+            model.setPopoverOpen(true)   // full refresh while visible
         }
+        .onDisappear { model.setPopoverOpen(false) }   // poll goes light again
         .onChange(of: model.settings.animateFlame) { _, _ in
             model.startFlameAnimation()   // start/stop the flame when the toggle flips
         }

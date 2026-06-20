@@ -52,6 +52,7 @@ public final class Settings: ObservableObject {
         static let notifyDailySummary = "notifyDailySummary"
         static let notifyMilestones = "notifyMilestones"
         static let animateFlame = "animateFlame"
+        static let autoUpdate = "autoUpdate"
     }
 
     public init(defaults: UserDefaults = .standard, loginItem: LoginItemControlling = LaunchAtLogin()) {
@@ -70,6 +71,9 @@ public final class Settings: ObservableObject {
         // Animate the menu-bar flame; default ON when unset.
         let animate = defaults.object(forKey: Key.animateFlame) == nil ? true : defaults.bool(forKey: Key.animateFlame)
         self._animateFlame = Published(initialValue: animate)
+        // Keep Burnt current via brew; default ON when unset.
+        let auto = defaults.object(forKey: Key.autoUpdate) == nil ? true : defaults.bool(forKey: Key.autoUpdate)
+        self._autoUpdate = Published(initialValue: auto)
     }
 
     @Published public var menuBarMode: MenuBarMode {
@@ -98,6 +102,10 @@ public final class Settings: ObservableObject {
 
     @Published public var notifyMilestones: Bool {
         didSet { defaults.set(notifyMilestones, forKey: Key.notifyMilestones) }
+    }
+
+    @Published public var autoUpdate: Bool {
+        didSet { defaults.set(autoUpdate, forKey: Key.autoUpdate) }
     }
 
     @Published public var launchAtLogin: Bool {

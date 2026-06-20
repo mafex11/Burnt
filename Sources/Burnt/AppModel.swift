@@ -17,21 +17,53 @@ final class AppModel: ObservableObject {
     private let notifier = NotificationService()
     private var notifierState = NotifierState()
 
+    @Published var updateState: UpdateUIState = .idle
+    private let brew = BrewUpdater()
+    private var updateTimer: Timer?
+    private let lastCheckKey = "lastUpdateCheck"
+
+    enum UpdateUIState: Equatable { case idle, checking, upToDate, available(String), updating }
+
+    /// App version from the bundle (e.g. "1.2.1"); "0" if unreadable.
+    private var currentVersion: String {
+        (Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String) ?? "0"
+    }
+
     init(settings: BurntCore.Settings = BurntCore.Settings()) {
         self.settings = settings
     }
 
-    /// Refresh now (live pricing), used on popover open and the manual button.
-    func refresh() { load() }
+    /// True while the popover is on screen. The background poll uses this to decide
+    /// whether the heavy per-project attribution is worth computing.
+    private var popoverOpen = false
+
+    /// Full refresh including per-project attribution — used on popover open and the
+    /// manual Refresh button, where the Detailed "By project" list may be visible.
+    func refresh() { load(includeProjects: true) }
+
+    /// Called when the popover appears/disappears so the poll can stay light while it's
+    /// closed. Opening triggers an immediate full refresh so projects are current.
+    func setPopoverOpen(_ open: Bool) {
+        popoverOpen = open
+        if open { refresh() }
+    }
 
     /// Refresh immediately, then poll every 60s so the menu bar number stays live.
+    /// The poll is LIGHT (no project attribution) unless the popover is open in
+    /// Detailed mode — that's the only place project data is shown, and it spares a
+    /// second subprocess plus a walk of every session log on every tick.
     func startAutoRefresh() {
         refresh()
         pollTimer?.invalidate()
         pollTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.refresh() }
+            Task { @MainActor in
+                guard let self else { return }
+                let needProjects = self.popoverOpen && self.settings.dashboardStyle == .detailed
+                self.load(includeProjects: needProjects)
+            }
         }
         startFlameAnimation()
+        startUpdateChecks()
     }
 
     /// Cycle the pixel flame at ~6fps while enabled. Cheap; advances a published
@@ -47,10 +79,61 @@ final class AppModel: ObservableObject {
         }
     }
 
-    private func load() {
+    /// Shared by the daily timer and the Settings button. Fetches the tap's latest
+    /// version off-main, compares, and (when auto-update is on and the app is
+    /// brew-managed) applies via brew. Best-effort: any failure degrades to idle.
+    func checkForUpdates(userInitiated: Bool) {
+        if userInitiated { updateState = .checking }
+        let current = currentVersion
+        let autoOn = settings.autoUpdate
+        let brew = self.brew
+        Task.detached {
+            let status: UpdateStatus
+            do {
+                let latest = try UpdateChecker.latestVersion()
+                status = UpdateChecker.compare(current: current, latest: latest)
+            } catch {
+                await MainActor.run { if userInitiated { self.updateState = .idle } }
+                return
+            }
+            let shouldUpgrade = await MainActor.run { () -> Bool in
+                UserDefaults.standard.set(Date(), forKey: self.lastCheckKey)
+                switch status {
+                case .upToDate:
+                    self.updateState = .upToDate
+                    return false
+                case .updateAvailable(let v):
+                    if autoOn && brew.isBrewManaged() {
+                        self.updateState = .updating
+                        return true
+                    } else {
+                        self.updateState = .available(v)
+                        return false
+                    }
+                }
+            }
+            if shouldUpgrade { brew.upgrade() }
+        }
+    }
+
+    /// Check on launch if a day has passed (or never checked), then schedule a daily
+    /// wall-clock check. Stored last-check date means a Mac that slept overnight still
+    /// checks promptly after wake rather than drifting on pure uptime.
+    func startUpdateChecks() {
+        let last = UserDefaults.standard.object(forKey: lastCheckKey) as? Date
+        if last == nil || Date().timeIntervalSince(last!) >= 86_400 {
+            checkForUpdates(userInitiated: false)
+        }
+        updateTimer?.invalidate()
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 86_400, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkForUpdates(userInitiated: false) }
+        }
+    }
+
+    private func load(includeProjects: Bool) {
         isLoading = true
         Task.detached { [engine] in
-            let r = engine.loadSummary()
+            let r = engine.loadSummary(includeProjects: includeProjects)
             await MainActor.run {
                 self.result = r
                 self.isLoading = false
