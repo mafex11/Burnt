@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:#f6f4f4; --panel:#ece8e8; --card:#ffffff;
+  --ink:#181314; --ink-2:#332a2c; --muted:#6e6164;
+  --line:#e4dcdc; --chip:#ede6e6;
+  --accent:#c01933; --accent-bright:#e2344b; --pos:#15803d;
+}
+
+html { scroll-behavior: smooth; }
+body { background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
