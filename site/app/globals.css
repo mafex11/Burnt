@@ -4,7 +4,7 @@
 
 :root {
   --bg:#f6f4f4; --panel:#ece8e8; --card:#ffffff;
-  --ink:#181314; --ink-2:#332a2c; --muted:#83777a;
+  --ink:#181314; --ink-2:#332a2c; --muted:#6e6164;
   --line:#e4dcdc; --chip:#ede6e6;
   --accent:#c01933; --accent-bright:#e2344b; --pos:#15803d;
 }
