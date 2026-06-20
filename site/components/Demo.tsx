@@ -1,4 +1,20 @@
+"use client";
+import { useEffect, useRef } from "react";
+
 export function Demo() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const v = videoRef.current;
+    if (!v) return;
+    if (reduce) {
+      v.removeAttribute("autoplay");
+      v.pause();
+    } else {
+      v.play().catch(() => {});
+    }
+  }, []);
+
   return (
     <section className="bg-ink text-paper">
       <div className="mx-auto max-w-content px-6 py-24">
@@ -11,8 +27,9 @@ export function Demo() {
             <span className="h-3 w-3 rounded-full bg-[#28c840]" />
           </div>
           <video
+            ref={videoRef}
             className="w-full"
-            autoPlay muted loop playsInline
+            muted loop playsInline
             poster="/hero.png"
             aria-label="Burnt launch demo"
           >
