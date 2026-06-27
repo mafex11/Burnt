@@ -177,7 +177,7 @@ struct RefreshButton: View {
     /// 0↔360 snap). Idle: hold a single static frame.
     @ViewBuilder
     private var spinningIcon: some View {
-        let icon = Image(systemName: "arrow.clockwise")
+        let icon = Image(systemName: "arrow.triangle.2.circlepath")
             .frame(width: 14, height: 14)            // fixed-size box → rotation pivots on its center
         if isLoading {
             TimelineView(.animation) { ctx in
