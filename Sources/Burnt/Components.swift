@@ -149,22 +149,20 @@ struct UnavailableView: View {
 }
 
 /// Refresh button that brightens on hover and spins continuously while refreshing.
-/// (The menu bar popover gives no default hover affordance, so we drive both from state.)
+/// Keeps the SAME `arrow.clockwise` glyph throughout (no swap to a different
+/// two-arrow symbol mid-spin) and rotates it about its own center via a TimelineView
+/// while loading. This avoids two prior visual bugs: (1) the icon morphing between
+/// two glyphs, and (2) `rotationEffect` combined with SwiftUI's implicit animation
+/// producing an off-center wobble at the 0↔360 reset.
 struct RefreshButton: View {
     let isLoading: Bool
     let action: () -> Void
     @State private var hovering = false
-    @State private var spin = false
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: isLoading ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+            spinningIcon
                 .foregroundStyle(hovering ? Color.primary : Color.secondary)
-                .rotationEffect(.degrees(spin ? 360 : 0))
-                .animation(isLoading
-                           ? .linear(duration: 0.8).repeatForever(autoreverses: false)
-                           : .default,
-                           value: spin)
                 .padding(4)
                 .background(
                     RoundedRectangle(cornerRadius: 5)
@@ -173,12 +171,22 @@ struct RefreshButton: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
-        .onChange(of: isLoading) { _, loading in
-            if loading {
-                spin = true               // start the repeating rotation
-            } else {
-                spin = false              // stop and reset to 0
+    }
+
+    /// While loading: rotate continuously using a TimelineView clock (smooth, no
+    /// 0↔360 snap). Idle: hold a single static frame.
+    @ViewBuilder
+    private var spinningIcon: some View {
+        let icon = Image(systemName: "arrow.clockwise")
+            .frame(width: 14, height: 14)            // fixed-size box → rotation pivots on its center
+        if isLoading {
+            TimelineView(.animation) { ctx in
+                let degrees = ctx.date.timeIntervalSinceReferenceDate
+                    .truncatingRemainder(dividingBy: 0.8) / 0.8 * 360
+                icon.rotationEffect(.degrees(degrees))
             }
+        } else {
+            icon
         }
     }
 }
