@@ -12,7 +12,7 @@ export function Nav() {
           <a href="#features" className="hover:text-ink">Features</a>
           <a href="#install" className="hover:text-ink">Install</a>
           <a href="https://github.com/mafex11/Burnt" className="hover:text-ink">GitHub</a>
-          <span className="rounded-full border border-line px-3 py-1 text-xs text-ink2">macOS 14+</span>
+          <span className="rounded-full border border-line px-3 py-1 text-xs text-ink2">macOS 14+ · Windows 10+</span>
         </div>
       </nav>
     </header>

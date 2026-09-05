@@ -15,11 +15,11 @@ export function CopyButton({ text, label }: { text: string; label?: string }) {
   return (
     <button
       onClick={copy}
-      className="group flex items-center gap-3 rounded-xl border border-line bg-chip px-4 py-3 font-mono text-sm text-ink2 transition-colors hover:border-accent"
+      className="group flex max-w-full items-center gap-3 rounded-xl border border-line bg-chip px-4 py-3 text-left font-mono text-sm text-ink2 transition-colors hover:border-accent"
       aria-label="Copy install command"
     >
-      <span>{label ?? text}</span>
-      <span className="text-xs text-muted group-hover:text-accent">{copied ? "Copied ✓" : "Copy"}</span>
+      <span className="break-all">{label ?? text}</span>
+      <span className="shrink-0 text-xs text-muted group-hover:text-accent">{copied ? "Copied ✓" : "Copy"}</span>
     </button>
   );
 }

@@ -16,8 +16,8 @@ export function Features() {
         Everything your spend is hiding, one click away.
       </h2>
       <p className="mt-3 max-w-xl text-muted">
-        Click the menu-bar flame for a full breakdown — accurate to the cent, because
-        ccusage is bundled right in.
+        Click the flame in your menu bar or system tray for a full breakdown — accurate to
+        the cent, because ccusage ships inside.
       </p>
       <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {FEATURES.map((f) => (

@@ -7,11 +7,11 @@ const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weigh
 
 export const metadata: Metadata = {
   title: "Burnt — see what you've burnt on Claude Code & Codex",
-  description: "A macOS menu-bar tracker for Claude Code and Codex token usage and cost. Real-dollar spend, today / week / month, at a glance.",
+  description: "A menu bar and system tray tracker for Claude Code and Codex token usage and cost, for macOS and Windows. Real-dollar spend, today / week / month, at a glance.",
   icons: { icon: "/appicon.png" },
   openGraph: {
-    title: "Burnt — menu-bar cost tracker for Claude Code & Codex",
-    description: "Real-dollar cost and token usage, right in your menu bar.",
+    title: "Burnt — menu bar & system tray cost tracker for Claude Code & Codex",
+    description: "Real-dollar cost and token usage, right in your menu bar or system tray.",
     images: ["/appicon.png"],
   },
 };

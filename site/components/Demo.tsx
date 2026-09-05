@@ -19,7 +19,10 @@ export function Demo() {
     <section className="bg-ink text-paper">
       <div className="mx-auto max-w-content px-6 py-24">
         <h2 className="text-3xl font-extrabold tracking-tight md:text-4xl">Watch it land in your menu bar.</h2>
-        <p className="mt-3 max-w-xl text-paper/60">From one brew command to a live flame with today&apos;s spend.</p>
+        <p className="mt-3 max-w-xl text-paper/60">
+          From one command to a live flame with today&apos;s spend — shown on macOS, with the
+          same dashboard in the Windows system tray.
+        </p>
         <div className="mt-10 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
           <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
             <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
