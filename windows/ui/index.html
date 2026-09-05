@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=320, initial-scale=1">
+<title>Burnt</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Sized to content by Go via burnt_resize(); 320px wide, frameless WebView2. -->
+  <div id="root" class="root" aria-live="polite"></div>
+
+  <!-- mock.js is a no-op when the Go bridge is present; it only fills in the
+       burnt_* globals when index.html is opened in an ordinary browser. -->
+  <script src="mock.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
