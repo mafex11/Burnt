@@ -1,0 +1,148 @@
+name: windows
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    paths:
+      - "windows/**"
+      - "install.ps1"
+      - ".github/workflows/windows.yml"
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing or new release tag to upload the Windows zip to (e.g. v1.3.0). Leave empty to only build."
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: unit tests (ubuntu)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: windows/go.mod
+          cache-dependency-path: windows/go.sum
+      - run: go vet ./...
+      - run: go test ./... -count=1
+      - name: cross-compile for windows/amd64
+        run: GOOS=windows GOARCH=amd64 go build -o /tmp/burnt.exe ./cmd/burnt
+
+  build:
+    name: build + smoke test (windows)
+    needs: test
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: windows/go.mod
+          cache-dependency-path: windows/go.sum
+
+      - name: Determine version
+        id: ver
+        env:
+          REF_TYPE: ${{ github.ref_type }}
+          REF_NAME: ${{ github.ref_name }}
+          INPUT_TAG: ${{ github.event.inputs.release_tag }}
+          SHA: ${{ github.sha }}
+        run: |
+          $tag = ""
+          if ($env:REF_TYPE -eq "tag") { $tag = $env:REF_NAME }
+          elseif ($env:INPUT_TAG) { $tag = $env:INPUT_TAG }
+          if ($tag -and $tag -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+([-.][0-9A-Za-z.-]+)?$') { throw "release_tag must look like v1.2.3" }
+          if ($tag) { $version = $tag.TrimStart("v") } else { $version = "0.0.0-dev." + $env:SHA.Substring(0,7) }
+          "tag=$tag" >> $env:GITHUB_OUTPUT
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "tag=$tag version=$version"
+
+      - name: Build burnt.exe
+        run: |
+          New-Item -ItemType Directory -Force dist | Out-Null
+          go build -trimpath -ldflags "-s -w -H windowsgui -X main.version=${{ steps.ver.outputs.version }}" -o dist/burnt.exe ./cmd/burnt
+
+      - name: Fetch native ccusage.exe
+        run: |
+          $pinned = (Select-String -Path internal/engine/*.go -Pattern 'PinnedCcusageVersion\s*=\s*"([^"]+)"' | Select-Object -First 1).Matches[0].Groups[1].Value
+          if (-not $pinned) { throw "PinnedCcusageVersion not found" }
+          Write-Host "ccusage pinned: $pinned"
+          New-Item -ItemType Directory -Force tmp-ccusage | Out-Null
+          Push-Location tmp-ccusage
+          npm pack "@ccusage/ccusage-win32-x64@$pinned" --silent
+          tar -xzf (Get-ChildItem *.tgz | Select-Object -First 1).Name
+          Pop-Location
+          Copy-Item tmp-ccusage/package/bin/ccusage.exe dist/ccusage.exe
+          Copy-Item tmp-ccusage/package/LICENSE dist/LICENSE-ccusage.txt
+
+      - name: Smoke test
+        run: |
+          $ErrorActionPreference = "Stop"
+          & dist/ccusage.exe --version
+          if ($LASTEXITCODE -ne 0) { throw "ccusage.exe failed" }
+
+          $p = Start-Process -FilePath (Resolve-Path dist/burnt.exe) -ArgumentList "--version" -Wait -PassThru -NoNewWindow -RedirectStandardOutput version.txt
+          Get-Content version.txt
+          if ($p.ExitCode -ne 0) { throw "burnt.exe --version exit $($p.ExitCode)" }
+          if (-not (Select-String -Path version.txt -Pattern "${{ steps.ver.outputs.version }}" -Quiet)) { throw "version string mismatch" }
+
+          $p = Start-Process -FilePath (Resolve-Path dist/burnt.exe) -ArgumentList "--render-icon", "`$12", "icon-test.ico" -Wait -PassThru -NoNewWindow
+          if ($p.ExitCode -ne 0 -or -not (Test-Path icon-test.ico)) { throw "render-icon failed" }
+
+          $p = Start-Process -FilePath (Resolve-Path dist/burnt.exe) -ArgumentList "--diagnose", "diag.txt" -Wait -PassThru -NoNewWindow
+          Get-Content diag.txt
+          if ($p.ExitCode -ne 0) { throw "diagnose exit $($p.ExitCode)" }
+          if (-not (Select-String -Path diag.txt -Pattern "ccusage: found" -Quiet)) { throw "diagnose did not locate bundled ccusage.exe" }
+
+      - name: Package zip
+        run: |
+          Copy-Item ../LICENSE dist/LICENSE
+          @"
+          Burnt for Windows ${{ steps.ver.outputs.version }}
+          ==============================================
+
+          Run burnt.exe. A dollar figure appears in the system tray; click it for the dashboard,
+          right-click for the menu. ccusage.exe must stay next to burnt.exe.
+
+          Recommended install (PowerShell):
+            irm https://raw.githubusercontent.com/mafex11/Burnt/main/install.ps1 | iex
+
+          Requires Windows 10 1809+ / Windows 11 (x64) and the Microsoft Edge WebView2 runtime
+          (preinstalled on Windows 11; the installer fetches it on Windows 10 if missing).
+
+          https://github.com/mafex11/Burnt
+          "@ | Set-Content -Path dist/README-windows.txt -Encoding UTF8
+          Compress-Archive -Path dist/* -DestinationPath Burnt-windows-x64.zip -Force
+          Get-Item Burnt-windows-x64.zip | Format-List Name, Length
+          (Get-FileHash Burnt-windows-x64.zip -Algorithm SHA256).Hash | Set-Content Burnt-windows-x64.zip.sha256
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Burnt-windows-x64
+          path: |
+            windows/Burnt-windows-x64.zip
+            windows/Burnt-windows-x64.zip.sha256
+
+      - name: Upload to GitHub release
+        if: steps.ver.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.ver.outputs.tag }}
+        run: |
+          gh release view $env:TAG -R ${{ github.repository }} 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $env:TAG -R ${{ github.repository }} --title "Burnt $env:TAG" --generate-notes
+          }
+          gh release upload $env:TAG Burnt-windows-x64.zip Burnt-windows-x64.zip.sha256 -R ${{ github.repository }} --clobber
