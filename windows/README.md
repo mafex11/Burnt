@@ -106,7 +106,8 @@ window has to stay on the thread that created it. Everything else hangs off it:
   every refresh (`trayicon.RenderText`), coloured from
   `HKCU\…\Themes\Personalize\SystemUsesLightTheme`, which is re-read each time so a
   light/dark switch is picked up. Icon-only mode draws the flame, and `animateFlame`
-  cycles six frames at 6 fps — only in icon-only mode, and the ticker is stopped otherwise.
+  flares it (six frames at 6 fps, three cycles) only when a poll finds today's cost rose
+  (`SpendWatcher`, `spend.go`); the rest of the time the ticker is stopped.
 - **Missing ccusage** is not fatal: the engine is built with a nil runner, the tray shows
   `—` with the tooltip "ccusage.exe not found next to burnt.exe", and the popover shows the
   error status.

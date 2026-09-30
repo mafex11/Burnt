@@ -72,7 +72,7 @@ func MenuTotals(s engine.Summary) (today, week string) {
 	return "Today: " + engine.FormatCost(s.Today.Cost), "Week: " + engine.FormatCost(s.Week.Cost)
 }
 
-// AnimateFlame reports whether the flame ticker should be running: only icon-only
+// AnimateFlame reports whether the flame may flare when spend rises: only icon-only
 // mode has a flame to animate, so the text modes never pay for the timer.
 func AnimateFlame(s settings.Settings) bool {
 	return s.AnimateFlame && s.MenuBarMode == settings.ModeIconOnly

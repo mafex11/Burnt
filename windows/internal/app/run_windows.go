@@ -73,6 +73,8 @@ type shell struct {
 	mu     sync.Mutex
 	st     State
 	latest *update.Release // newest release seen, for burnt_installUpdate
+	spend  SpendWatcher    // today's cost across polls, to flare only on a rise
+	flare  bool            // a rise the next applyTray should show as a flare
 
 	refreshReq chan bool
 	done       chan struct{}
@@ -327,6 +329,9 @@ func (s *shell) refresh(includeProjects bool) {
 	s.st.Summary = summary
 	s.st.Loading = false
 	cfg := s.st.Settings
+	if s.spend.Observe(summary) {
+		s.flare = true
+	}
 	s.mu.Unlock()
 
 	s.applyTray()
@@ -353,11 +358,15 @@ func (s *shell) applyTray() {
 	s.trayMu.Lock()
 	defer s.trayMu.Unlock()
 
-	st := s.snapshot()
+	s.mu.Lock()
+	st := s.st
+	flare := s.flare
+	s.flare = false
+	s.mu.Unlock()
 	light := systemUsesLightTheme()
 
 	if text := TrayText(st.Summary, st.Settings.MenuBarMode); text == "" {
-		s.flame.Apply(AnimateFlame(st.Settings), light)
+		s.flame.Apply(AnimateFlame(st.Settings), flare, light)
 	} else {
 		s.flame.Stop()
 		if icon, err := trayIcon(text, light); err != nil {
