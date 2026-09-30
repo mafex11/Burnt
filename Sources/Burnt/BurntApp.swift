@@ -2,14 +2,14 @@ import SwiftUI
 import BurntCore
 
 /// The menu bar label: an animated pixel-art flame + the value text.
-/// The flame frame is driven by `frame`; the same `Image(nsImage:)` updates live
-/// when the observed frame index changes.
+/// Observes the `FlameAnimator` directly so a frame tick re-renders only this
+/// label; the `App` body (and the popover) only update when usage data changes.
 struct MenuBarLabel: View {
     let text: String
-    let frame: Int
+    @ObservedObject var flameAnimator: FlameAnimator
 
     var body: some View {
-        let flame = Image(nsImage: PixelFlame.image(frame: frame))
+        let flame = Image(nsImage: PixelFlame.image(frame: flameAnimator.frame))
         if text.isEmpty {
             flame
         } else {
@@ -29,7 +29,7 @@ struct BurntApp: App {
         MenuBarExtra {
             MenuBarRootView(model: model)
         } label: {
-            MenuBarLabel(text: model.menuBarText, frame: model.flameFrame)
+            MenuBarLabel(text: model.menuBarText, flameAnimator: model.flame)
                 .onAppear { model.startAutoRefresh() }
         }
         .menuBarExtraStyle(.window)

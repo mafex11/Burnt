@@ -28,7 +28,7 @@ struct MenuBarRootView: View {
         }
         .onDisappear { model.setPopoverOpen(false) }   // poll goes light again
         .onChange(of: model.settings.animateFlame) { _, _ in
-            model.startFlameAnimation()   // start/stop the flame when the toggle flips
+            model.animateFlameChanged()   // off → stop any flare in progress
         }
     }
 

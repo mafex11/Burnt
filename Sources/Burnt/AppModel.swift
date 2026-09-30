@@ -8,12 +8,14 @@ final class AppModel: ObservableObject {
     @Published var result: EngineResult = .noData
     @Published var isLoading = false
     @Published var showingWrapped = false
-    @Published var flameFrame = 0          // current pixel-flame animation frame
 
     let settings: BurntCore.Settings
+    /// Menu-bar flame frames. Its own ObservableObject so frame ticks don't
+    /// re-render this model's observers (the scene and popover).
+    let flame = FlameAnimator()
+    private var spendWatcher = SpendWatcher()
     private let engine = UsageEngine()
     private var pollTimer: Timer?
-    private var flameTimer: Timer?
     private let notifier = NotificationService()
     private var notifierState = NotifierState()
 
@@ -62,20 +64,21 @@ final class AppModel: ObservableObject {
                 self.load(includeProjects: needProjects)
             }
         }
-        startFlameAnimation()
         startUpdateChecks()
     }
 
-    /// Cycle the pixel flame at ~6fps while enabled. Cheap; advances a published
-    /// frame index the menu bar label observes. Off → hold a single frame.
-    func startFlameAnimation() {
-        flameTimer?.invalidate()
-        guard settings.animateFlame else { flameFrame = 0; return }
-        flameTimer = Timer.scheduledTimer(withTimeInterval: 0.16, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self else { return }
-                self.flameFrame = (self.flameFrame + 1) % PixelFlame.frameCount
-            }
+    /// Called when the "Animate flame" toggle flips. Turning it off stops a flare
+    /// in progress; turning it on takes effect at the next spend rise.
+    func animateFlameChanged() {
+        if !settings.animateFlame { flame.stop() }
+    }
+
+    /// Flare the flame only when today's spend rose since the previous poll, so
+    /// the timer runs for a few seconds per rise instead of forever.
+    private func flareIfSpendRose() {
+        guard let s = currentSummary else { return }
+        if spendWatcher.observe(cost: s.today.cost) && settings.animateFlame {
+            flame.flare()
         }
     }
 
@@ -137,6 +140,7 @@ final class AppModel: ObservableObject {
             await MainActor.run {
                 self.result = r
                 self.isLoading = false
+                self.flareIfSpendRose()
                 self.runNotifications()
             }
         }

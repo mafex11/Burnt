@@ -35,7 +35,7 @@ struct SettingsView: View {
                 }
             }
 
-            Toggle("Animate flame", isOn: $settings.animateFlame)
+            Toggle("Animate flame when spend rises", isOn: $settings.animateFlame)
 
             Picker("Dashboard style", selection: $settings.dashboardStyle) {
                 ForEach(DashboardStyle.allCases, id: \.self) { style in
